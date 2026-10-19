@@ -158,7 +158,7 @@ struct ProjectView: View {
             }
         } else {
             EmptyCard(title: "\(model.period.longLabel)에는 한 일이 없어요",
-                      message: "이 프로젝트에서 마지막으로 일한 날은 \(Fmt.fullDay(project.lastActive))이에요.",
+                      message: "이 프로젝트에서 마지막으로 일한 날: \(Fmt.fullDay(project.lastActive))",
                       symbol: "calendar") {
                 if model.period != .all { Button("전체 기간 보기") { model.period = .all } }
             }

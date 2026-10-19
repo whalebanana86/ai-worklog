@@ -251,7 +251,7 @@ scripts/screenshot.sh /tmp/a.png --screen skills --period all   # 앱 창만 캡
 앱 실행 옵션(화면 확인용): `--screen timeline|prompts|skills|project=<경로>`, `--period today|week|month|quarter|all`,
 `--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
 `--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다),
-`--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭).
+`--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭), `--tools codex,lmStudio`(도구 거르기).
 
 README 그림 다시 찍기 (창 크기는 화면에 맞게):
 

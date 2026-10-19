@@ -251,7 +251,8 @@ final class AppModel {
         scoped = WorkLogAnalytics.clip(filtered, to: period.interval())
         days = WorkLogAnalytics.days(scoped)
         totals = WorkTotals(days: days, original: { [byId] in byId[$0] })
-        projects = WorkLogAnalytics.projects(filtered, notesByRoot: query.isEmpty ? snapshot.notesByRoot : [:])
+        // AI 메모는 Claude Code 가 남긴 것이라, 거르기에서 Claude Code 를 뺐으면 "메모만 남은" 프로젝트도 뺀다.
+        projects = WorkLogAnalytics.projects(filtered, notesByRoot: query.isEmpty && tools.contains(.claudeCode) ? snapshot.notesByRoot : [:])
     }
 
     private static func matches(_ s: WorkSession, _ q: String) -> Bool {

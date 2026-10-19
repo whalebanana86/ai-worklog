@@ -10,11 +10,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 if model.scoped.isEmpty && model.hasLoaded {
-                    Card {
-                        EmptyHint(title: "\(model.period.longLabel)에는 기록이 없어요",
-                                  message: "기간을 넓히거나 필터를 바꿔 보세요.", symbol: "calendar.badge.exclamationmark")
-                            .frame(height: 260)
-                    }
+                    NoRecordsCard()
                 } else {
                     kpis
                     Card(title: model.period == .today ? "시간대별 요청" : "날짜별 요청",
@@ -55,7 +51,7 @@ struct DashboardView: View {
 
     private var summarySentence: String {
         let t = model.totals
-        guard t.prompts > 0 else { return "아직 AI 에게 맡긴 일이 없어요." }
+        guard t.prompts > 0 else { return model.snapshot.sessions.isEmpty ? "아직 AI 에게 맡긴 일이 없어요." : "이 기간에는 AI 에게 맡긴 일이 없어요." }
         return "프로젝트 \(t.projects)곳에서 AI 에게 \(Fmt.number(t.prompts))번 요청하고, 약 \(Fmt.duration(t.activeSeconds)) 함께 작업했어요."
     }
 

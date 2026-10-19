@@ -12,7 +12,7 @@ struct TimelineView: View {
     var body: some View {
         Group {
             if model.days.isEmpty && model.hasLoaded {
-                EmptyHint(title: "\(model.period.longLabel)에는 기록이 없어요", message: "기간을 넓히거나 필터를 바꿔 보세요.", symbol: "calendar")
+                NoRecordsPage()
             } else {
                 List {
                     ForEach(model.days.prefix(dayLimit)) { day in
@@ -148,7 +148,7 @@ struct PromptsView: View {
         let items = self.items
         Group {
             if items.isEmpty && model.hasLoaded {
-                EmptyHint(title: "요청이 없어요", message: model.search.isEmpty ? "기간을 넓혀 보세요." : "‘\(model.search)’ 와 맞는 요청이 없어요.", symbol: "text.bubble")
+                NoRecordsPage(noun: "요청")
             } else {
                 List {
                     ForEach(items.prefix(limit)) { item in

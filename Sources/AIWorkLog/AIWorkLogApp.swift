@@ -94,6 +94,7 @@ enum LaunchOptions {
         default: break
         }
         if let q = value("--search") { model.search = q }
+        if let t = value("--tools") { model.tools = Set(t.split(separator: ",").compactMap { AITool(rawValue: String($0)) }) }
         if args.contains("--report") {
             Task {
                 while !model.hasLoaded || model.isLoading { try? await Task.sleep(for: .milliseconds(100)) }
