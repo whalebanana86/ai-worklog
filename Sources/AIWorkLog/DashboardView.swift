@@ -305,7 +305,9 @@ struct ActivityChart: View {
                         if let hovered, let x = proxy.position(forX: hovered.addingTimeInterval(unit == .hour ? 1800 : 43_200)) {
                             let barX = frame.minX + x
                             let width = Self.tooltipWidth
-                            let left = barX + 14 + width > frame.maxX ? barX - 14 - width : barX + 14
+                            let gap: CGFloat = 14
+                            let fitsRight: Bool = barX + gap + width <= frame.maxX
+                            let left: CGFloat = fitsRight ? barX + gap : barX - gap - width
                             tooltip(for: hovered, data: data)
                                 .frame(width: width, alignment: .leading)
                                 .fixedSize(horizontal: false, vertical: true)

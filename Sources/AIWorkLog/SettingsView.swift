@@ -45,11 +45,7 @@ struct SettingsView: View {
             } header: {
                 Text(L("AI 날짜별 요약"))
             } footer: {
-                Text((model.summaryEngines?.isEmpty == true
-                      ? L("요약할 AI 가 없어요. Claude Code·Codex 를 설치하거나 LM Studio 서버를 켜면 앱으로 돌아올 때 알아서 찾아요. 저장해 둔 요약은 그대로 보여요.\n")
-                      : "")
-                     + L("설치할 때 하는 \"지난 날짜 모두 요약\"과 같아요. 한 번 만든 요약은 보관함에 남아서 다시 만들지 않아요. ")
-                     + (model.summaryEngine.map { L("요약 재료는 %@로 가요.", $0.destination) } ?? ""))
+                Text(summaryFooter)
                     .foregroundStyle(.secondary)
             }
 
@@ -108,6 +104,17 @@ struct SettingsView: View {
                     .disabled(count == 0 || model.summaryEngine == nil || model.isDemo)
             }
         }
+    }
+
+    /// 한 식으로 이으면 오래된 컴파일러가 타입을 못 정해서 줄마다 나눠 쓴다.
+    private var summaryFooter: String {
+        var text = ""
+        if model.summaryEngines?.isEmpty == true {
+            text += L("요약할 AI 가 없어요. Claude Code·Codex 를 설치하거나 LM Studio 서버를 켜면 앱으로 돌아올 때 알아서 찾아요. 저장해 둔 요약은 그대로 보여요.\n")
+        }
+        text += L("설치할 때 하는 \"지난 날짜 모두 요약\"과 같아요. 한 번 만든 요약은 보관함에 남아서 다시 만들지 않아요. ")
+        if let engine = model.summaryEngine { text += L("요약 재료는 %@로 가요.", engine.destination) }
+        return text
     }
 
     private var foundEngines: String {

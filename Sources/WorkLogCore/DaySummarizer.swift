@@ -486,12 +486,15 @@ public enum DaySummarizer {
         // Claude Code 안에서 띄운 경우에 붙는 표시. 남아 있으면 claude 가 다른 세션 안이라고 여긴다.
         for key in ["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SSE_PORT"] { env.removeValue(forKey: key) }
         let home = FileManager.default.homeDirectoryForCurrentUser.path
+        // 한 식으로 이으면 오래된 컴파일러(Swift 6.2)가 타입을 못 정해서 나눠 쓴다.
+        let common: [String] = ["\(home)/.local/bin", "\(home)/.volta/bin", "/opt/homebrew/bin", "/usr/local/bin",
+                                "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        var candidates: [String] = [(engine.location as NSString).deletingLastPathComponent]
+        candidates += engine.searchPath.split(separator: ":").map(String.init)
+        candidates += (env["PATH"] ?? "").split(separator: ":").map(String.init)
+        candidates += common
         var seen = Set<String>()
-        let dirs = ([(engine.location as NSString).deletingLastPathComponent]
-            + engine.searchPath.split(separator: ":").map(String.init)
-            + (env["PATH"] ?? "").split(separator: ":").map(String.init)
-            + ["\(home)/.local/bin", "\(home)/.volta/bin", "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"])
-            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        let dirs = candidates.filter { !$0.isEmpty && seen.insert($0).inserted }
         env["PATH"] = dirs.joined(separator: ":")
         // volta 로 깐 codex 는 VOLTA_HOME 이 있어야 실행된다.
         if env["VOLTA_HOME"] == nil, FileManager.default.fileExists(atPath: "\(home)/.volta") { env["VOLTA_HOME"] = "\(home)/.volta" }

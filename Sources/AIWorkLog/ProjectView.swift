@@ -284,7 +284,7 @@ struct DayWorkCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(Fmt.relativeDay(day.day) == Fmt.day(day.day) ? Fmt.day(day.day) : "\(Fmt.relativeDay(day.day)) · \(Fmt.day(day.day))")
                     .font(.headline)
-                Text(L("요청 %@ · %@", String(day.promptCount), Fmt.duration(day.activeSeconds)) + (files.isEmpty ? "" : " · " + L("파일 %@개", String(files.count))))
+                Text(statsLine(files: files.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if added + removed > 0 { LineDelta(added: added, removed: removed, approximate: true) }
@@ -335,6 +335,13 @@ struct DayWorkCard: View {
             if !Task.isCancelled { model.refresh() }
         }
         .onDisappear { model.cancelQueuedSummary(project: projectPath, day: day.day) }
+    }
+
+    /// "요청 4 · 30분 · 파일 5개"
+    private func statsLine(files: Int) -> String {
+        var line: String = L("요청 %@ · %@", String(day.promptCount), Fmt.duration(day.activeSeconds))
+        if files > 0 { line += " · " + L("파일 %@개", String(files)) }
+        return line
     }
 
     /// 세션마다 요청 → 결과 → 고친 파일 (최신이 위).
