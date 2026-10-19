@@ -60,6 +60,8 @@ struct Card<Content: View>: View {
     var title: String?
     var subtitle: String?
     var padding: CGFloat = 16
+    /// 나란히 놓인 카드끼리 높이를 맞출 때 켠다 (`CardPair`).
+    var fillHeight = false
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -73,9 +75,38 @@ struct Card<Content: View>: View {
             content
         }
         .padding(padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil, alignment: .topLeading)
         .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.cardBorder))
+    }
+}
+
+/// 카드 두 장을 너비를 반씩 나눠 나란히 놓는다. 자리가 모자라면 위아래로 쌓는다.
+/// (격자에 맡기면 넓은 창에서 세 칸이 생겨 두 장이 왼쪽으로 쏠린다.)
+struct CardPair<First: View, Second: View>: View {
+    var minWidth: CGFloat = 360
+    var spacing: CGFloat = 18
+    @ViewBuilder var first: First
+    @ViewBuilder var second: Second
+    @State private var width: CGFloat = 0
+
+    var body: some View {
+        Group {
+            if width == 0 || width >= minWidth * 2 + spacing {
+                HStack(alignment: .top, spacing: spacing) {
+                    first.frame(maxWidth: .infinity)
+                    second.frame(maxWidth: .infinity)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            } else {
+                VStack(spacing: spacing) {
+                    first
+                    second
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }
 

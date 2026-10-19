@@ -18,17 +18,19 @@ struct DashboardView: View {
                         ActivityChart(sessions: model.scoped, period: model.period)
                             .frame(height: 210)
                     }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 360), spacing: 18, alignment: .top)], spacing: 18) {
-                        Card(title: L("프로젝트별 작업 시간"), subtitle: L("요청을 주고받은 시간 기준")) {
+                    CardPair {
+                        Card(title: L("프로젝트별 작업 시간"), subtitle: L("요청을 주고받은 시간 기준"), fillHeight: true) {
                             ProjectBars(times: Array(WorkLogAnalytics.projectTimes(model.days).prefix(8)))
                         }
-                        Card(title: L("언제 일했나"), subtitle: L("요일·시간대별 요청 수")) {
+                    } second: {
+                        Card(title: L("언제 일했나"), subtitle: L("요일·시간대별 요청 수"), fillHeight: true) {
                             WeekHourHeatmap(grid: WorkLogAnalytics.weekHourGrid(model.scoped))
                         }
                     }
                     recent
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 360), spacing: 18, alignment: .top)], spacing: 18) {
+                    CardPair {
                         toolsCard
+                    } second: {
                         modelsCard
                     }
                 }
@@ -86,7 +88,7 @@ struct DashboardView: View {
     }
 
     private var toolsCard: some View {
-        Card(title: L("AI 가 많이 쓴 도구"), subtitle: L("이 기간에 걸친 세션 전체 기준")) {
+        Card(title: L("AI 가 많이 쓴 도구"), subtitle: L("이 기간에 걸친 세션 전체 기준"), fillHeight: true) {
             let tools = WorkLogAnalytics.toolTotals(model.scoped).prefix(14)
             if tools.isEmpty {
                 Text(L("도구 기록이 없어요")).foregroundStyle(.secondary)
@@ -101,7 +103,7 @@ struct DashboardView: View {
     }
 
     private var modelsCard: some View {
-        Card(title: L("모델별 사용량"), subtitle: L("이 기간에 걸친 세션 전체 기준")) {
+        Card(title: L("모델별 사용량"), subtitle: L("이 기간에 걸친 세션 전체 기준"), fillHeight: true) {
             let rows = WorkLogAnalytics.modelTotals(model.scoped).prefix(6)
             if rows.isEmpty {
                 Text(L("모델 기록이 없어요")).foregroundStyle(.secondary)
