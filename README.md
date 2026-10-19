@@ -146,6 +146,7 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 | 설정 | 하는 일 | 설치 옵션으로는 |
 |---|---|---|
 | 언어 | 한국어 / English / 日本語. 바로 바뀌어요 | — |
+| 도구 색 | 프로젝트 목록의 점·차트·꼬리표에 쓰는 Claude Code(주황)·Codex(파랑)·LM Studio(초록) 색을 바꿔요 | — |
 | 요약에 쓸 AI | 자동 / Claude Code / Codex / LM Studio / 끄기 | — |
 | 지난 날짜 요약 · **지금 모두 만들기** | 아직 요약이 없는 지난 날을 한꺼번에 요약해 저장해요. 중간에 멈출 수 있어요 | `--install` (빼려면 `--no-summary`) |
 | 자동 보관 | 앱을 열지 않아도 6시간마다 기록을 모아요. Claude Code 가 지우기 전에 옮겨 담아요 | `--auto-sync` / `--remove-auto-sync` |
@@ -276,7 +277,7 @@ scripts/screenshot.sh /tmp/a.png --screen skills --period all   # 앱 창만 캡
 `--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
 `--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다),
 `--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭), `--tools codex,lmStudio`(도구 거르기),
-`--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기).
+`--tool-colors claudeCode=8E44AD,codex=2E9E4F`(이번에만 도구 색 바꾸기, 저장하지 않음), `--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기).
 
 README 그림·시연 영상 다시 만들기 (지어낸 기록으로만 찍는다):
 

@@ -35,12 +35,15 @@ extension Color {
 }
 
 extension AITool {
-    /// 차트 범주 색 1~3번 칸 (색약 검증 통과 순서).
-    var color: Color {
+    /// 프로젝트 목록의 점·차트·꼬리표에 쓰는 색. 설정에서 바꿀 수 있다 (`ToolColors`).
+    @MainActor var color: Color { ToolColors.shared.color(for: self) }
+
+    /// 기본 색: 차트 범주 색 1~3번 칸 (색약 검증 통과 순서).
+    var defaultHex: (light: UInt32, dark: UInt32) {
         switch self {
-        case .codex: return Color(light: 0x2A78D6, dark: 0x3987E5)
-        case .claudeCode: return Color(light: 0xEB6834, dark: 0xD95926)
-        case .lmStudio: return Color(light: 0x1BAF7A, dark: 0x199E70)
+        case .codex: return (0x2A78D6, 0x3987E5)
+        case .claudeCode: return (0xEB6834, 0xD95926)
+        case .lmStudio: return (0x1BAF7A, 0x199E70)
         }
     }
 
@@ -53,6 +56,73 @@ extension AITool {
     }
 
     static var chartOrder: [AITool] { [.codex, .claudeCode, .lmStudio] }
+}
+
+/// 설정에서 고른 도구 색. 화면이 읽어 간 색은 바뀌면 알아서 다시 그려진다 (@Observable).
+@MainActor @Observable
+final class ToolColors {
+    static let shared = ToolColors()
+    private static let defaultsKey = "toolColors"
+
+    /// 고른 색 (0xRRGGBB). 밝은 화면과 어두운 화면에 같은 색을 쓴다. 없으면 기본 색.
+    private(set) var custom: [AITool: UInt32] = [:]
+    /// 데모(README 그림)와 화면 확인용 `--tool-colors` 는 저장된 색을 읽지도 쓰지도 않는다.
+    private let persists: Bool
+
+    init(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        let i = arguments.firstIndex(of: "--tool-colors")
+        persists = !arguments.contains("--demo") && i == nil
+        if persists, let saved = UserDefaults.standard.dictionary(forKey: Self.defaultsKey) as? [String: String] {
+            custom = Self.parse(saved.map { "\($0.key)=\($0.value)" })
+        }
+        // `--tool-colors claudeCode=8E44AD,codex=2E9E4F` 처럼 이번에만 바꿔 띄운다.
+        if let i, i + 1 < arguments.count {
+            custom = Self.parse(arguments[i + 1].split(separator: ",").map(String.init))
+        }
+    }
+
+    func color(for tool: AITool) -> Color {
+        if let hex = custom[tool] { return Color(nsColor: NSColor(hex: hex)) }
+        let hex = tool.defaultHex
+        return Color(light: hex.light, dark: hex.dark)
+    }
+
+    func isCustom(_ tool: AITool) -> Bool { custom[tool] != nil }
+
+    func set(_ color: Color, for tool: AITool) {
+        guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return }
+        func byte(_ v: CGFloat) -> UInt32 { UInt32((max(0, min(1, v)) * 255).rounded()) }
+        let hex = byte(rgb.redComponent) << 16 | byte(rgb.greenComponent) << 8 | byte(rgb.blueComponent)
+        // 색 고르기 창이 열리면서 지금 색을 그대로 돌려줄 때가 있다. 기본 색이면 고른 것으로 치지 않는다.
+        if custom[tool] == nil, hex == tool.defaultHex.light || hex == tool.defaultHex.dark { return }
+        guard custom[tool] != hex else { return }
+        custom[tool] = hex
+        save()
+    }
+
+    func reset(_ tool: AITool) {
+        custom[tool] = nil
+        save()
+    }
+
+    private func save() {
+        guard persists else { return }
+        let saved = Dictionary(uniqueKeysWithValues: custom.map { ($0.key.rawValue, String(format: "%06X", $0.value)) })
+        UserDefaults.standard.set(saved, forKey: Self.defaultsKey)
+    }
+
+    /// "claudeCode=8E44AD" 꼴을 읽는다. 앞의 # 은 있어도 된다.
+    private static func parse(_ pairs: [String]) -> [AITool: UInt32] {
+        var out: [AITool: UInt32] = [:]
+        for pair in pairs {
+            let parts = pair.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            guard parts.count == 2, let tool = AITool(rawValue: parts[0]) else { continue }
+            let digits = parts[1].hasPrefix("#") ? String(parts[1].dropFirst()) : parts[1]
+            guard digits.count == 6, let hex = UInt32(digits, radix: 16) else { continue }
+            out[tool] = hex
+        }
+        return out
+    }
 }
 
 /// 둥근 테두리 카드.

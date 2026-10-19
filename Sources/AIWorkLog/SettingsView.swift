@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var autoSync = AutoSync().isEnabled
     @State private var autoSyncError: String?
+    private let colors = ToolColors.shared
 
     var body: some View {
         @Bindable var model = model
@@ -22,6 +23,26 @@ struct SettingsView: View {
                 Text(L("언어"))
             } footer: {
                 Text(L("바로 바뀌어요. 편집·윈도우 같은 macOS 기본 메뉴는 앱을 다시 열면 바뀌어요. 새로 만드는 AI 요약도 이 언어로 써요."))
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                ForEach(AITool.allCases) { tool in
+                    LabeledContent(tool.displayName) {
+                        HStack(spacing: 8) {
+                            if colors.isCustom(tool) {
+                                Button(L("기본 색으로")) { colors.reset(tool) }
+                            }
+                            ColorPicker(tool.displayName, selection: Binding(get: { tool.color }, set: { colors.set($0, for: tool) }),
+                                        supportsOpacity: false)
+                                .labelsHidden()
+                        }
+                    }
+                }
+            } header: {
+                Text(L("도구 색"))
+            } footer: {
+                Text(L("프로젝트 목록의 점, 차트, 도구 꼬리표에 쓰는 색이에요. 고른 색은 밝은 화면과 어두운 화면에 똑같이 써요."))
                     .foregroundStyle(.secondary)
             }
 

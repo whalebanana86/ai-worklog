@@ -118,6 +118,7 @@ The install options can also be changed inside the app.
 | Setting | What it does | Install option |
 |---|---|---|
 | Language | 한국어 / English / 日本語, applied immediately | — |
+| Tool colors | The colors of Claude Code (orange), Codex (blue) and LM Studio (green) in the project list dots, charts and tags | — |
 | AI for summaries | Auto / Claude Code / Codex / LM Studio / Off. "Auto" picks the tool you've used most lately | — |
 | Past day summaries · **Make All Now** | Summarizes every past day that has no summary yet. You can stop it midway | `--install` (skip with `--no-summary`) |
 | Auto Archive | Collects records every 6 hours even when the app is closed, before Claude Code deletes them | `--auto-sync` / `--remove-auto-sync` |
@@ -187,7 +188,7 @@ scripts/make_screenshots.sh en      # README screenshots from sample data → do
 scripts/make_demo_video.sh en       # README demo video → docs/demo-en.gif/mp4 (records only the app window; needs ffmpeg)
 ```
 
-Launch options for testing: `--demo` (sample data; never touches your real records or calls an AI), `--lang ko|en|ja`, `--screen timeline|prompts|skills|project=<path>`, `--period today|week|month|quarter|all`, `--session <id>`, `--search <text>`, `--settings`, `--dark`, `--frame x,y,w,h`, `--no-ai`, `--tab worklog|sessions|setup|notes`, `--tools codex,lmStudio`, `--tour`.
+Launch options for testing: `--demo` (sample data; never touches your real records or calls an AI), `--lang ko|en|ja`, `--screen timeline|prompts|skills|project=<path>`, `--period today|week|month|quarter|all`, `--session <id>`, `--search <text>`, `--settings`, `--dark`, `--frame x,y,w,h`, `--no-ai`, `--tab worklog|sessions|setup|notes`, `--tools codex,lmStudio`, `--tool-colors claudeCode=8E44AD,codex=2E9E4F` (this run only, not saved), `--tour`.
 
 Translations: UI strings are written in Korean and used as keys, e.g. `L("요청 %@개", n)`; English and Japanese live in `Sources/WorkLogCore/Translations.swift`. `swift test` fails if a string has no translation.
 
