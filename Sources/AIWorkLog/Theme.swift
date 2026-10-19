@@ -209,16 +209,30 @@ struct EmptyHint: View {
 }
 
 /// 테두리 있는 카드 가운데에 놓는 빈 화면 안내. 탭마다 "아직 없어요"를 같은 모양으로 보여 준다.
-struct EmptyCard: View {
+/// `actions` 에 "전체 기간 보기" 같은 버튼을 넣을 수 있다.
+struct EmptyCard<Actions: View>: View {
     var title: String
     var message: String
     var symbol: String = "tray"
+    @ViewBuilder var actions: Actions
 
     var body: some View {
         Card {
-            EmptyHint(title: title, message: message, symbol: symbol)
-                .frame(maxWidth: .infinity, minHeight: 200)
+            ContentUnavailableView {
+                Label(title, systemImage: symbol)
+            } description: {
+                Text(message)
+            } actions: {
+                actions
+            }
+            .frame(maxWidth: .infinity, minHeight: 200)
         }
+    }
+}
+
+extension EmptyCard where Actions == EmptyView {
+    init(title: String, message: String, symbol: String = "tray") {
+        self.init(title: title, message: message, symbol: symbol) { EmptyView() }
     }
 }
 

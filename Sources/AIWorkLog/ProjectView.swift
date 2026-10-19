@@ -104,7 +104,7 @@ struct ProjectView: View {
         // Group 의 자식은 바깥 LazyVStack 에 하나씩 풀려 들어가서 날마다 따로 늦게 그려진다.
         Group {
             worklogSummary(days)
-            NoSummaryEngineNote()
+            if !days.isEmpty { NoSummaryEngineNote() }
             if days.isEmpty {
                 emptyWorklog
             }
@@ -142,20 +142,26 @@ struct ProjectView: View {
     @ViewBuilder
     private var emptyWorklog: some View {
         if project.sessions.isEmpty {
-            EmptyCard(title: "남은 세션이 없어요",
+            EmptyCard(title: "남은 대화 기록이 없어요",
                       message: "대화 기록이 지워져 AI 메모만 남은 프로젝트예요.",
-                      symbol: "rectangle.stack")
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(query.isEmpty ? "\(model.period.longLabel)에는 이 프로젝트에서 한 일이 없어요" : "‘\(query)’ 와 맞는 작업이 없어요")
-                    .foregroundStyle(.secondary)
-                HStack {
-                    if model.period != .all { Button("전체 기간 보기") { model.period = .all } }
-                    if !query.isEmpty { Button("검색어 지우기") { model.search = "" } }
-                }
-                .controlSize(.small)
+                      symbol: "calendar") {
+                if !project.notes.isEmpty { Button("AI 메모 보기") { tab = .notes } }
             }
-            .padding(.vertical, 8)
+        } else if !query.isEmpty {
+            EmptyCard(title: "‘\(query)’ 와 맞는 작업이 없어요",
+                      message: "\(model.period.longLabel) 동안 이 프로젝트에서 보낸 요청과 AI 답에서 찾지 못했어요.",
+                      symbol: "magnifyingglass") {
+                HStack {
+                    Button("검색어 지우기") { model.search = "" }
+                    if model.period != .all { Button("전체 기간에서 찾기") { model.period = .all } }
+                }
+            }
+        } else {
+            EmptyCard(title: "\(model.period.longLabel)에는 한 일이 없어요",
+                      message: "이 프로젝트에서 마지막으로 일한 날은 \(Fmt.fullDay(project.lastActive))이에요.",
+                      symbol: "calendar") {
+                if model.period != .all { Button("전체 기간 보기") { model.period = .all } }
+            }
         }
     }
 
@@ -164,7 +170,11 @@ struct ProjectView: View {
     @ViewBuilder
     private var sessions: some View {
         if project.sessions.isEmpty {
-            Text("대화 기록이 지워져 메모만 남은 프로젝트예요").foregroundStyle(.secondary)
+            EmptyCard(title: "남은 세션이 없어요",
+                      message: "대화 기록이 지워져 AI 메모만 남은 프로젝트예요.",
+                      symbol: "rectangle.stack") {
+                if !project.notes.isEmpty { Button("AI 메모 보기") { tab = .notes } }
+            }
         }
         ForEach(project.sessions.prefix(sessionLimit)) { session in
             Button { model.open(session) } label: {
