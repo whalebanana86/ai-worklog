@@ -5,6 +5,7 @@
 #   scripts/build_app.sh --install --no-summary  AI 요약은 미리 만들지 않기 (앱에서 날짜를 볼 때 그날만 요약)
 #   scripts/build_app.sh --install --auto-sync   + 앱을 안 열어도 6시간마다 보관함 갱신 (launchd)
 #   scripts/build_app.sh --remove-auto-sync      자동 보관 끄기
+#   (AI 요약 미리 만들기·자동 보관은 앱 설정(⌘,)에서도 켜고 끌 수 있어요)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,7 +24,11 @@ remove_agent() {
 }
 
 if [ "${1:-}" = "--remove-auto-sync" ]; then
-  remove_agent
+  if [ -x "$INSTALLED/Contents/MacOS/AIWorkLog" ]; then
+    "$INSTALLED/Contents/MacOS/AIWorkLog" cli --auto-sync off
+  else
+    remove_agent
+  fi
   exit 0
 fi
 
@@ -68,31 +73,8 @@ for arg in "$@"; do
       ;;
     --auto-sync)
       [ -d "$INSTALLED" ] || { echo "먼저 --install 로 설치해 주세요."; exit 1; }
-      remove_agent >/dev/null
-      mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
-      cat > "$AGENT_PLIST" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>$AGENT_ID</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$INSTALLED/Contents/MacOS/AIWorkLog</string>
-    <string>cli</string>
-    <string>--quiet</string>
-  </array>
-  <key>StartInterval</key><integer>21600</integer>
-  <key>RunAtLoad</key><true/>
-  <key>LowPriorityIO</key><true/>
-  <key>Nice</key><integer>10</integer>
-  <key>StandardOutPath</key><string>$HOME/Library/Logs/AIWorkLog-sync.log</string>
-  <key>StandardErrorPath</key><string>$HOME/Library/Logs/AIWorkLog-sync.log</string>
-</dict>
-</plist>
-PLIST
-      launchctl bootstrap "gui/$(id -u)" "$AGENT_PLIST"
-      echo "자동 보관을 켰어요: 6시간마다 보관함을 갱신해요 (끄기: scripts/build_app.sh --remove-auto-sync)"
+      # 앱 설정의 "자동 보관"과 같은 것을 켠다 (launchd, 6시간마다 cli --quiet).
+      "$INSTALLED/Contents/MacOS/AIWorkLog" cli --auto-sync on
       ;;
   esac
 done

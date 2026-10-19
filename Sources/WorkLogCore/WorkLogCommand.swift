@@ -5,6 +5,7 @@ import Foundation
 ///   --day 2026-10-16     그날 보고서(마크다운)
 ///   --day … --ai [claude|codex|lmstudio]   그날 프로젝트마다 AI 요약 (보관함에 남겨 앱이 그대로 씀)
 ///   --summarize [--ai …] [--dry-run]   아직 요약이 없는 지난 날짜를 모두 AI 로 요약해 보관함에 남김 (설치 때 한 번)
+///   --auto-sync on|off|status   앱을 안 열어도 6시간마다 보관함 갱신 (launchd, 앱 설정과 같은 것)
 ///   --session <id>       세션 하나 자세히
 ///   --no-store           보관함 없이 원본만 처음부터 읽기
 ///   --quiet              보관함만 갱신하고 한 줄로 알리기 (설치·자동 보관용)
@@ -14,6 +15,28 @@ public enum WorkLogCommand {
         func value(after flag: String) -> String? {
             guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
             return args[i + 1]
+        }
+
+        if let mode = value(after: "--auto-sync") {
+            let sync = AutoSync()
+            switch mode {
+            case "on":
+                do {
+                    try sync.enable()
+                    print("자동 보관을 켰어요: 6시간마다 보관함을 갱신해요 (끄기: --auto-sync off, 또는 앱 설정)")
+                    return 0
+                } catch {
+                    print("⚠️ \(error)")
+                    return 1
+                }
+            case "off":
+                sync.disable()
+                print("자동 보관을 껐어요.")
+                return 0
+            default:
+                print(sync.registeredProgram.map { "자동 보관: 켜짐 (\($0.joined(separator: " ")))" } ?? "자동 보관: 꺼짐")
+                return 0
+            }
         }
 
         let loader = WorkLogLoader(storeURL: args.contains("--no-store") ? nil : WorkLogStore.defaultURL)

@@ -3,6 +3,7 @@ import WorkLogCore
 
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         @Bindable var model = model
@@ -14,6 +15,12 @@ struct ContentView: View {
         }
         .searchable(text: $model.search, placement: .sidebar, prompt: "요청·답변·프로젝트 검색")
         .overlay(alignment: .bottom) { toastView }
+        .task {
+            // 화면 확인용: `--settings` 로 띄우면 설정 창을 연다.
+            guard ProcessInfo.processInfo.arguments.contains("--settings") else { return }
+            try? await Task.sleep(for: .milliseconds(800))
+            openSettings()
+        }
         .overlay { if !model.hasLoaded { LoadingView(progress: model.progress) } }
         .sheet(item: $model.report) { draft in ReportSheet(draft: draft) }
         .onChange(of: model.screen) { model.path = [] }
@@ -206,6 +213,11 @@ struct Sidebar: View {
                     .foregroundStyle(.orange)
                     .help(model.snapshot.warnings.joined(separator: "\n"))
             }
+            SettingsLink {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.borderless)
+            .help("설정: AI 요약, 자동 보관, 보관함 (⌘,)")
         }
         .font(.caption)
         .foregroundStyle(.secondary)

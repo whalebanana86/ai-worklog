@@ -1,6 +1,7 @@
 #!/bin/bash
 # 앱을 지정한 화면으로 띄우고 앱 창만 찍는다.  사용: scripts/screenshot.sh <저장할 png> [앱 실행 옵션...]
 #   예) scripts/screenshot.sh /tmp/a.png --screen timeline --period week
+#   WINDOW=<창 제목 일부> 를 주면 그 창을 찍는다 (예: WINDOW=설정 … --settings)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="$1"; shift
@@ -13,6 +14,6 @@ for _ in $(seq 1 40); do
   sleep 0.5
 done
 sleep "${WAIT:-3}"
-ID=$(swift scripts/window_id.swift "$PID")
+ID=$(swift scripts/window_id.swift "$PID" ${WINDOW:+"$WINDOW"})
 screencapture -x -o -l "$ID" "$OUT"
 echo "$OUT"

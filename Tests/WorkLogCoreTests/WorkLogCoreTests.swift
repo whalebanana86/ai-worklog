@@ -395,6 +395,38 @@ final class WorkLogCoreTests: XCTestCase {
         XCTAssertEqual(loaded[summary.key]?.coveredUntil, covered)
     }
 
+    // MARK: - 자동 보관 · 시연 기록
+
+    func testAutoSyncWritesAndRemovesLaunchAgent() throws {
+        var sync = AutoSync(home: root)
+        sync.useLaunchctl = false
+        XCTAssertFalse(sync.isEnabled)
+        try sync.enable(program: ["/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
+        XCTAssertTrue(sync.isEnabled)
+        XCTAssertEqual(sync.registeredProgram, ["/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
+        let plist = try XCTUnwrap(PropertyListSerialization.propertyList(from: Data(contentsOf: sync.agentURL), format: nil) as? [String: Any])
+        XCTAssertEqual(plist["Label"] as? String, AutoSync.label)
+        XCTAssertEqual(plist["StartInterval"] as? Int, 21_600)
+        sync.disable()
+        XCTAssertFalse(sync.isEnabled)
+        XCTAssertNil(sync.registeredProgram)
+    }
+
+    func testDemoDataHasClosedPastDaysAndATodayWaitingForABreak() throws {
+        let now = Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!
+        let snapshot = DemoData.snapshot(now: now)
+        let summaries = DemoData.summaries(now: now)
+        XCTAssertEqual(Set(snapshot.sessions.map(\.projectName)), ["todo-app", "my-blog", "weather-widget", "photo-album"])
+        // 시연 기록은 지난 날을 다시 요약하지 않는다.
+        XCTAssertTrue(DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries, now: now).isEmpty)
+        // 오늘은 요청 3개까지 요약돼 있고, 12분 전 요청 하나가 "30분 쉬면" 이어 쓰기를 기다린다.
+        let todo = DemoData.path("todo-app")
+        let today = try XCTUnwrap(DaySummarizer.source(project: todo, day: now, sessions: snapshot.sessions))
+        let summary = try XCTUnwrap(summaries[DaySummary.key(project: todo, day: Fmt.isoDay(now))])
+        XCTAssertEqual(DaySummarizer.newSince(summary, in: today), 1)
+        XCTAssertEqual(DaySummarizer.plan(for: today, existing: summary, now: now), .wait(until: now.addingTimeInterval(18 * 60)))
+    }
+
     // MARK: - 설정 찾기
 
     func testFindsRulesSkillsCommandsAndHidesSettingValues() throws {

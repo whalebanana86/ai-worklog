@@ -9,6 +9,10 @@
 이 앱은 그렇게 **AI 와 나눈 이야기를 전부 모아서**, 날마다 "오늘 무엇을 했는지"를 짧게 정리해 보여 줘요.
 마치 선생님이 하루 동안 한 일을 알림장에 몇 줄로 적어 주는 것처럼요.
 
+![프로젝트 화면: 날마다 AI 가 쓴 "이날 한 일" 요약](docs/screenshots/project.png)
+
+> 이 README 의 그림은 모두 지어낸 예시 기록(할 일 앱·블로그·날씨 위젯·사진 앨범)으로 찍었어요. 앱을 `--demo` 로 띄우면 똑같이 볼 수 있어요.
+
 ## 왜 만들었어요?
 
 AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
@@ -62,6 +66,8 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 
 ### 왼쪽 목록
 
+![한눈에 보기: 작업 시간, 요청 수, 날짜별 막대, 프로젝트별 시간, 일한 시간대](docs/screenshots/dashboard.png)
+
 | 메뉴 | 무엇을 보여 줘요? |
 |---|---|
 | 한눈에 보기 | 얼마나 오래 일했는지, AI 에게 몇 번 부탁했는지, 어느 날 많이 일했는지 그래프로 보여 줘요 |
@@ -78,6 +84,8 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 4. 더 자세히 보고 싶으면 **요청 N개 자세히 보기**를 눌러요. 내가 한 부탁 → AI 가 한 일 → 고친 파일이 순서대로 나와요.
 5. 부탁 하나를 누르면 그때 AI 와 나눈 대화 전체를 볼 수 있어요.
 
+![세션 화면: 최신 대화가 위, 부탁마다 고친 파일과 AI 의 답 한 줄](docs/screenshots/session.png)
+
 ### 오늘 요약은 언제 생겨요?
 
 - 일하는 동안에는 기다려요. 마지막 부탁 뒤로 **30분 동안 쉬면** 그때 요약해요. 카드에 "09:17쯤 요약해요"처럼 알려 줘요.
@@ -92,7 +100,27 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 - 그래프의 **막대를 누르면** 그날 한 일만 보여요.
 - **이날 보고서** 버튼을 누르면 그날 한 일을 글로 정리해 줘요. 복사하거나 파일로 저장할 수 있어요.
 - 오른쪽 위 **AI 요약** 메뉴에서 요약해 줄 AI 를 고르거나 끌 수 있어요. "자동"은 내가 요즘 가장 많이 쓴 AI 를 골라요.
-- 단축키: `⌘1`~`⌘4` 화면 바꾸기, `⌘R` 새로 고침, `⌘E` 보고서, `⌘[` 뒤로 가기
+- **스킬·규칙** 화면에서는 AI 에게 미리 가르쳐 둔 규칙 파일과 스킬, 많이 쓴 순서를 볼 수 있어요.
+- 어두운 화면(다크 모드)도 돼요. 맥 설정을 따라가요.
+- 단축키: `⌘1`~`⌘4` 화면 바꾸기, `⌘R` 새로 고침, `⌘E` 보고서, `⌘,` 설정, `⌘[` 뒤로 가기
+
+<p>
+  <img src="docs/screenshots/skills.png" width="49%" alt="스킬·규칙 화면">
+  <img src="docs/screenshots/project-dark.png" width="49%" alt="어두운 화면">
+</p>
+
+### 앱 안에서 바꾸는 설정 (⌘,)
+
+설치할 때 고르던 옵션을 앱 안에서도 켜고 끌 수 있어요. 메뉴 막대의 **AI 작업일지 → 설정…** 이나 왼쪽 아래 톱니바퀴를 눌러요.
+
+| 설정 | 하는 일 | 설치 옵션으로는 |
+|---|---|---|
+| 요약에 쓸 AI | 자동 / Claude Code / Codex / LM Studio / 끄기 | — |
+| 지난 날짜 요약 · **지금 모두 만들기** | 아직 요약이 없는 지난 날을 한꺼번에 요약해 저장해요. 중간에 멈출 수 있어요 | `--install` (빼려면 `--no-summary`) |
+| 자동 보관 | 앱을 열지 않아도 6시간마다 기록을 모아요. Claude Code 가 지우기 전에 옮겨 담아요 | `--auto-sync` / `--remove-auto-sync` |
+| 보관함 | 모은 기록 수, 폴더 열기, 원본 처음부터 다시 읽기 | — |
+
+<img src="docs/screenshots/settings.png" width="560" alt="설정 창">
 
 ## 내 기록은 안전해요?
 
@@ -176,7 +204,8 @@ scripts/build_app.sh --install --auto-sync  # + 앱을 안 열어도 6시간마�
 scripts/build_app.sh --remove-auto-sync     # 자동 보관 끄기
 ```
 
-앱을 오래 안 열면 그 사이 Claude Code 가 지운 대화는 보관함에 들어가지 못한다. 그게 걱정되면 `--auto-sync` 를 켠다.
+앱을 오래 안 열면 그 사이 Claude Code 가 지운 대화는 보관함에 들어가지 못한다. 그게 걱정되면 `--auto-sync` 를 켠다 (앱 설정의 "자동 보관"과 같은 것).
+`~/Library/LaunchAgents` 폴더가 관리자(root) 것이면(다른 프로그램 설치기가 만든 경우) 켜지지 않는다. 그때는 `sudo chown $USER ~/Library/LaunchAgents` 를 한 번 실행한다.
 개발자 인증서 없이 임시 서명하므로 내 맥에서 쓰는 용도다.
 
 설치한 앱 하나로 터미널 명령도 된다 (설치 스크립트·자동 보관이 이걸 쓴다):
@@ -186,6 +215,7 @@ scripts/build_app.sh --remove-auto-sync     # 자동 보관 끄기
 "$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16
 "$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16 --ai claude   # 그날 프로젝트마다 AI 요약 (codex·lmstudio 도 됨)
 "$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --summarize            # 아직 요약 없는 지난 날짜 모두 요약 (--dry-run: 몇 개인지만)
+"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --auto-sync on        # 자동 보관 켜기 (off: 끄기, status: 상태)
 ```
 
 #### 가볍게 만든 방법 (2026-10-16 측정)
@@ -212,7 +242,15 @@ scripts/screenshot.sh /tmp/a.png --screen skills --period all   # 앱 창만 캡
 ```
 
 앱 실행 옵션(화면 확인용): `--screen timeline|prompts|skills|project=<경로>`, `--period today|week|month|quarter|all`,
-`--session <id>`, `--search <글>`, `--report`, `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태).
+`--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
+`--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다).
+
+README 그림 다시 찍기 (창 크기는 화면에 맞게):
+
+```bash
+scripts/build_app.sh
+scripts/screenshot.sh docs/screenshots/project.png --demo --screen "project=$HOME/Projects/todo-app" --period month --frame 60,0,1400,940
+```
 
 구성:
 - `Sources/WorkLogCore` — 기록 읽기(`ClaudeCodeSource`, `CodexSource`, `LMStudioSource`), 보관함(`WorkLogStore`), 설정 찾기(`AIConfig`), AI 날짜별 요약(`DaySummarizer`), 통계·보고서

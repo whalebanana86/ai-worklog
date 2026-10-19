@@ -72,6 +72,14 @@ enum SummaryChoice: String, CaseIterable, Identifiable {
         case .auto, .off: return nil
         }
     }
+
+    init(_ kind: SummaryEngine.Kind) {
+        switch kind {
+        case .claudeCode: self = .claudeCode
+        case .codex: self = .codex
+        case .lmStudio: self = .lmStudio
+        }
+    }
 }
 
 /// 그날 기록의 지금 상태 (화면 안내용).
@@ -139,6 +147,12 @@ final class AppModel {
     private(set) var summaryJobs: [String: SummaryJob] = [:]
     private(set) var summaryInputs: [String: SummaryInput] = [:]
 
+    /// 지난 날짜를 한꺼번에 요약하는 중이면 (모두, 끝낸 수). 설정의 "지금 모두 만들기".
+    private(set) var backlogProgress: (total: Int, done: Int)?
+
+    /// `--demo`: 지어낸 기록으로 띄운다 (README 스크린샷용). 실제 기록·보관함을 읽지 않고 AI 도 부르지 않는다.
+    let isDemo = ProcessInfo.processInfo.arguments.contains("--demo")
+
     @ObservationIgnored private let loader = WorkLogLoader()
     @ObservationIgnored private var toastTask: Task<Void, Never>?
     @ObservationIgnored private var pendingSummaries: [PendingSummary] = []
@@ -161,6 +175,14 @@ final class AppModel {
 
     func refresh(rereadSources: Bool = false) {
         guard !isLoading else { return }
+        if isDemo {
+            // 기록과 요약을 같은 시각으로 만들어야 "요약한 뒤로 생긴 요청" 수가 맞는다.
+            let now = Date()
+            summaryEngines = [DemoData.engine]
+            summaries = DemoData.summaries(now: now)
+            apply(DemoData.snapshot(now: now))
+            return
+        }
         isLoading = true
         let loader = loader
         let model = self
@@ -289,7 +311,14 @@ final class AppModel {
         summaries.merge(stored) { mine, disk in mine.created >= disk.created ? mine : disk }
     }
 
+    /// 고르기 메뉴에 쓰는 이름. 이 맥에 없는 도구는 "없음"을 붙인다.
+    func summaryEngineLabel(_ kind: SummaryEngine.Kind) -> String {
+        if summaryEngines?.contains(where: { $0.kind == kind }) == true { return kind.displayName }
+        return kind == .lmStudio ? "LM Studio (서버 꺼짐)" : "\(kind.displayName) (설치 안 됨)"
+    }
+
     func findSummaryEngines() {
+        guard !isDemo else { return }
         Task {
             summaryEngines = await DaySummarizer.detectEngines()
             summaryJobs = summaryJobs.filter { $0.value == .running }
@@ -300,7 +329,7 @@ final class AppModel {
     /// 최근 일주일 동안 끝난 날 중 요약이 없거나 마감 전인 것을 화면과 상관없이 맡긴다 (보통 어제 것 몇 개).
     /// 그보다 오래된 날은 설치 때 만들었거나, 그날을 볼 때 만든다.
     private func queueRecentBacklog() {
-        guard snapshot.isSynced, summaryEngine != nil,
+        guard !isDemo, snapshot.isSynced, summaryEngine != nil,
               let since = Calendar.current.date(byAdding: .day, value: -7, to: Calendar.current.startOfDay(for: Date())) else { return }
         for item in DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries, since: since) {
             requestSummary(project: item.project, name: WorkSession.displayName(forPath: item.project), day: item.day, background: true)
@@ -333,6 +362,7 @@ final class AppModel {
         case .failed: if !force { return }  // 실패한 날은 "다시 시도"를 눌렀을 때만
         case nil: break
         }
+        if isDemo { return }
         var material = full
         var previous: DaySummary?
         switch plan {
@@ -348,6 +378,28 @@ final class AppModel {
                                                digest: DaySummarizer.digest(full), promptCount: count,
                                                coveredUntil: DaySummarizer.askedPrompts(in: source).last?.date, background: background))
         runSummaries(with: engine)
+    }
+
+    /// 아직 요약이 없거나 마감할 지난 날짜 수 (설정 화면에 보여 줌).
+    var pastBacklogCount: Int { DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries).count }
+
+    /// 설정의 "지금 모두 만들기": 설치 때 하는 지난 날짜 요약을 앱 안에서 한다. 화면과 상관없이 끝까지 간다.
+    func summarizeAllPast() {
+        guard !isDemo, summaryEngine != nil, backlogProgress == nil else { return }
+        let items = DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries)
+        guard !items.isEmpty else { return }
+        backlogProgress = (items.count, 0)
+        for item in items {
+            requestSummary(project: item.project, name: WorkSession.displayName(forPath: item.project), day: item.day, background: true)
+        }
+    }
+
+    /// "멈추기": 아직 시작하지 않은 것만 뺀다. 이미 만든 요약은 남는다.
+    func stopSummarizingAll() {
+        let dropped = pendingSummaries.filter(\.background).map(\.key)
+        pendingSummaries.removeAll(where: \.background)
+        for key in dropped { summaryJobs[key] = nil }
+        backlogProgress = nil
     }
 
     /// 화면에서 사라진 날짜는 아직 시작하지 않았으면 빼서, 보이는 날짜부터 요약한다.
@@ -389,6 +441,11 @@ final class AppModel {
                     Task.detached(priority: .utility) { try? store?.saveSummary(summary) }
                 case .failure(let error):
                     summaryJobs[job.key] = .failed((error as? SummaryError)?.description ?? error.localizedDescription)
+                }
+                if job.background, let progress = backlogProgress {
+                    let done = progress.done + 1
+                    backlogProgress = done >= progress.total || !pendingSummaries.contains(where: \.background) && runningSummaries == 0
+                        ? nil : (progress.total, done)
                 }
                 if let current = summaryEngine { runSummaries(with: current) }
             }

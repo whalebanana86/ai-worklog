@@ -42,6 +42,11 @@ struct AIWorkLogApp: App {
                 }
         }
         .defaultSize(width: 1240, height: 820)
+
+        Settings {
+            SettingsView()
+                .environment(model)
+        }
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandMenu("기록") {

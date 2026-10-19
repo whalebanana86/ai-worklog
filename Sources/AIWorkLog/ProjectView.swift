@@ -456,13 +456,14 @@ struct SummaryEngineMenu: View {
             Picker("요약에 쓸 AI", selection: $model.summaryChoice) {
                 Text("자동 (요즘 가장 많이 쓴 도구)").tag(SummaryChoice.auto)
                 ForEach(SummaryEngine.Kind.allCases) { kind in
-                    Text(label(for: kind)).tag(choice(for: kind))
+                    Text(model.summaryEngineLabel(kind)).tag(SummaryChoice(kind))
                 }
                 Text("끄기").tag(SummaryChoice.off)
             }
             .pickerStyle(.inline)
             Divider()
             Button("AI 도구 다시 찾기") { model.findSummaryEngines() }
+            SettingsLink { Text("요약 설정…") }
         } label: {
             Label(title, systemImage: "sparkles")
         }
@@ -478,19 +479,6 @@ struct SummaryEngineMenu: View {
         if model.summaryChoice == .off { return "AI 요약 꺼짐" }
         if let engine = model.summaryEngine { return "AI 요약 · \(engine.displayName)" }
         return engines.isEmpty ? "요약할 AI 없음" : "\(model.summaryChoice.kind?.displayName ?? "AI") 없음"
-    }
-
-    private func label(for kind: SummaryEngine.Kind) -> String {
-        if model.summaryEngines?.contains(where: { $0.kind == kind }) == true { return kind.displayName }
-        return kind == .lmStudio ? "LM Studio (서버 꺼짐)" : "\(kind.displayName) (설치 안 됨)"
-    }
-
-    private func choice(for kind: SummaryEngine.Kind) -> SummaryChoice {
-        switch kind {
-        case .claudeCode: return .claudeCode
-        case .codex: return .codex
-        case .lmStudio: return .lmStudio
-        }
     }
 }
 
