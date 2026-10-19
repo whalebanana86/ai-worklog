@@ -26,11 +26,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Swift
-        run: swift --version
+      - name: Xcode
+        # 러너에 깔린 Xcode 중 가장 새것을 쓴다 (앱은 Swift 6 컴파일러·macOS 14+ SDK 로 만든다).
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          echo "::notice::$(basename "$XCODE") · $(swift --version 2>&1 | head -1)"
 
       - name: Test
-        run: swift test
+        # 실패하면 오류 줄을 주석(annotation)으로 남겨 로그 없이도 원인을 볼 수 있게.
+        run: |
+          set +e
+          swift test 2>&1 | tee test.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -ne 0 ]; then
+            grep -E "error:|failed|fatal" test.log | grep -v "^\s*|" | sort -u | head -20 | while IFS= read -r line; do echo "::error::$line"; done
+          fi
+          exit "$STATUS"
 
       - name: Import signing certificate
         if: env.HAS_CERT == 'true'
