@@ -93,6 +93,13 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 - 이미 요약이 있으면 **새로 한 부탁만** 더해서 고쳐 써요. 처음부터 다시 쓰는 것보다 AI 사용량이 적어요.
 - 하루가 끝나면 마지막으로 한 번 정리해서 그날 요약을 확정해요.
 
+### AI 가 없으면요?
+
+- 요약해 줄 AI(Claude Code, Codex, LM Studio)가 하나도 없어도 앱은 그대로 써요. 날짜 카드에 요청 → AI 가 한 일 → 고친 파일 목록이 보여요.
+- 목록 위에 "요약해 줄 AI 를 찾지 못했어요" 안내가 떠요. 필요 없으면 ✕ 로 닫아요.
+- 전에 만들어 둔 요약은 AI 가 없어도 **그대로 보여요**. 새로 만들거나 이어 쓰는 버튼만 숨어요.
+- 나중에 Claude Code·Codex 를 설치하거나 LM Studio 서버를 켜면, 앱으로 돌아올 때 알아서 다시 찾아요.
+
 ### 그 밖에
 
 - 위쪽 **오늘 · 7일 · 30일 · 90일 · 전체** 버튼으로 보고 싶은 기간을 골라요.
@@ -243,7 +250,8 @@ scripts/screenshot.sh /tmp/a.png --screen skills --period all   # 앱 창만 캡
 
 앱 실행 옵션(화면 확인용): `--screen timeline|prompts|skills|project=<경로>`, `--period today|week|month|quarter|all`,
 `--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
-`--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다).
+`--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다),
+`--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭).
 
 README 그림 다시 찍기 (창 크기는 화면에 맞게):
 

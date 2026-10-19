@@ -20,13 +20,22 @@ struct SettingsView: View {
                     }
                     Text("끄기").tag(SummaryChoice.off)
                 }
+                LabeledContent("찾은 AI 도구") {
+                    HStack(spacing: 8) {
+                        Text(foundEngines).foregroundStyle(.secondary)
+                        Button("다시 찾기") { model.findSummaryEngines() }
+                    }
+                }
                 LabeledContent("지난 날짜 요약") {
                     backlogControl
                 }
             } header: {
                 Text("AI 날짜별 요약")
             } footer: {
-                Text("설치할 때 하는 \"지난 날짜 모두 요약\"과 같아요. 한 번 만든 요약은 보관함에 남아서 다시 만들지 않아요. "
+                Text((model.summaryEngines?.isEmpty == true
+                      ? "요약할 AI 가 없어요. Claude Code·Codex 를 설치하거나 LM Studio 서버를 켜면 앱으로 돌아올 때 알아서 찾아요. 저장해 둔 요약은 그대로 보여요.\n"
+                      : "")
+                     + "설치할 때 하는 \"지난 날짜 모두 요약\"과 같아요. 한 번 만든 요약은 보관함에 남아서 다시 만들지 않아요. "
                      + (model.summaryEngine.map { "요약 재료는 \($0.destination)로 가요." } ?? ""))
                     .foregroundStyle(.secondary)
             }
@@ -85,6 +94,11 @@ struct SettingsView: View {
                     .disabled(count == 0 || model.summaryEngine == nil || model.isDemo)
             }
         }
+    }
+
+    private var foundEngines: String {
+        guard let engines = model.summaryEngines else { return "찾는 중…" }
+        return engines.isEmpty ? "없어요" : engines.map(\.displayName).joined(separator: " · ")
     }
 
     private var storeSummary: String {

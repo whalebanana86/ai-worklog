@@ -152,11 +152,14 @@ final class AppModel {
 
     /// `--demo`: 지어낸 기록으로 띄운다 (README 스크린샷용). 실제 기록·보관함을 읽지 않고 AI 도 부르지 않는다.
     let isDemo = ProcessInfo.processInfo.arguments.contains("--demo")
+    /// `--no-ai`: 이 맥에 요약할 AI 가 하나도 없는 척한다 (화면 확인용).
+    private let pretendNoAI = ProcessInfo.processInfo.arguments.contains("--no-ai")
 
     @ObservationIgnored private let loader = WorkLogLoader()
     @ObservationIgnored private var toastTask: Task<Void, Never>?
     @ObservationIgnored private var pendingSummaries: [PendingSummary] = []
     @ObservationIgnored private var runningSummaries = 0
+    @ObservationIgnored private var enginesCheckedAt: Date?
 
     private struct PendingSummary {
         var key: String
@@ -178,7 +181,7 @@ final class AppModel {
         if isDemo {
             // 기록과 요약을 같은 시각으로 만들어야 "요약한 뒤로 생긴 요청" 수가 맞는다.
             let now = Date()
-            summaryEngines = [DemoData.engine]
+            summaryEngines = pretendNoAI ? [] : [DemoData.engine]
             summaries = DemoData.summaries(now: now)
             apply(DemoData.snapshot(now: now))
             return
@@ -220,10 +223,12 @@ final class AppModel {
 
     var storeURL: URL? { loader.store?.url }
 
-    /// 앱으로 돌아왔을 때, 마지막으로 읽은 지 1분이 넘었으면 다시 읽는다.
-    func refreshIfStale() {
-        guard hasLoaded, Date().timeIntervalSince(snapshot.loadedAt) > 60 else { return }
-        refresh()
+    /// 앱으로 돌아왔을 때: 마지막으로 읽은 지 1분이 넘었으면 기록을 다시 읽고,
+    /// 그사이 Claude Code·Codex 를 깔았거나 LM Studio 서버를 켰을 수 있으니 AI 도구도 다시 찾는다.
+    func appBecameActive() {
+        guard hasLoaded else { return }
+        if Date().timeIntervalSince(snapshot.loadedAt) > 60 { refresh() }
+        if let checked = enginesCheckedAt, Date().timeIntervalSince(checked) > 60 { findSummaryEngines() }
     }
 
     func session(_ id: String) -> WorkSession? { byId[id] }
@@ -319,6 +324,11 @@ final class AppModel {
 
     func findSummaryEngines() {
         guard !isDemo else { return }
+        enginesCheckedAt = Date()
+        if pretendNoAI {
+            summaryEngines = []
+            return
+        }
         Task {
             summaryEngines = await DaySummarizer.detectEngines()
             summaryJobs = summaryJobs.filter { $0.value == .running }
@@ -342,7 +352,8 @@ final class AppModel {
     /// 지난 날은 한 번 요약하면(마감하면) 그대로 쓰고, 오늘은 손 뗀 지 30분이 지나면 그 뒤 요청만 더해 이어 쓴다.
     /// `force` 는 버튼: 새 요청이 있으면 이어 쓰기, 없으면 처음부터 다시.
     func requestSummary(project path: String, name: String, day: Date, force: Bool = false, background: Bool = false) {
-        guard let engine = summaryEngine else { return }
+        // 요약할 AI 가 없어도 "요약한 뒤로 요청이 N개 더" 안내는 해야 하니 그날 상태는 먼저 잰다.
+        let engine = summaryEngine
         let key = summaryKey(project: path, day: day)
         guard let source = DaySummarizer.source(project: path, day: day, sessions: snapshot.sessions),
               let full = DaySummarizer.material(for: source, projectName: name) else {
@@ -353,9 +364,10 @@ final class AppModel {
         let plan = DaySummarizer.plan(for: source, existing: existing, force: force)
         let count = DaySummarizer.promptCount(for: source)
         var wake: Date?
-        if case .wait(let until) = plan { wake = until }
+        if case .wait(let until) = plan, engine != nil { wake = until }
         let input = SummaryInput(promptCount: count, newSince: existing.map { DaySummarizer.newSince($0, in: source) } ?? count, wakeAt: wake)
         if summaryInputs[key] != input { summaryInputs[key] = input }
+        guard let engine else { return }
 
         switch summaryJobs[key] {
         case .queued, .running: return

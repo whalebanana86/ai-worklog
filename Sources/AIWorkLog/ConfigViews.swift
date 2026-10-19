@@ -46,11 +46,8 @@ struct SkillsView: View {
                 }
 
                 if model.snapshot.configs.isEmpty && model.snapshot.globalConfigs.isEmpty {
-                    Card {
-                        EmptyHint(title: model.snapshot.isSynced ? "만들어 둔 스킬·규칙이 없어요" : "설정을 찾는 중이에요",
-                                  message: "CLAUDE.md, AGENTS.md, .claude/skills 같은 파일을 찾아 보여 줘요.", symbol: "wand.and.stars")
-                            .frame(height: 220)
-                    }
+                    EmptyCard(title: model.snapshot.isSynced ? "만들어 둔 스킬·규칙이 없어요" : "설정을 찾는 중이에요",
+                              message: "CLAUDE.md, AGENTS.md, .claude/skills 같은 파일을 찾아 보여 줘요.", symbol: "wand.and.stars")
                 }
             }
             .padding(24)

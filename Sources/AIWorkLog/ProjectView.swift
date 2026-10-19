@@ -5,9 +5,16 @@ struct ProjectView: View {
     @Environment(AppModel.self) private var model
     var project: ProjectSummary
 
-    private enum Tab: Hashable { case worklog, sessions, setup, notes }
+    private enum Tab: String, Hashable { case worklog, sessions, setup, notes }
 
-    @State private var tab: Tab = .worklog
+    /// 화면 확인용: `--tab worklog|sessions|setup|notes` 로 시작 탭을 고른다.
+    private static var launchTab: Tab {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--tab"), i + 1 < args.count else { return .worklog }
+        return Tab(rawValue: args[i + 1]) ?? .worklog
+    }
+
+    @State private var tab: Tab = ProjectView.launchTab
     /// 막대를 눌러 고른 날. 그날 한 일만 본다.
     @State private var pickedDay: Date?
     /// 무한 스크롤: 지금까지 그린 날 수, 세션 수.
@@ -97,6 +104,7 @@ struct ProjectView: View {
         // Group 의 자식은 바깥 LazyVStack 에 하나씩 풀려 들어가서 날마다 따로 늦게 그려진다.
         Group {
             worklogSummary(days)
+            NoSummaryEngineNote()
             if days.isEmpty {
                 emptyWorklog
             }
@@ -134,7 +142,9 @@ struct ProjectView: View {
     @ViewBuilder
     private var emptyWorklog: some View {
         if project.sessions.isEmpty {
-            Text("대화 기록이 지워져 메모만 남은 프로젝트예요").foregroundStyle(.secondary)
+            EmptyCard(title: "남은 세션이 없어요",
+                      message: "대화 기록이 지워져 AI 메모만 남은 프로젝트예요.",
+                      symbol: "rectangle.stack")
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 Text(query.isEmpty ? "\(model.period.longLabel)에는 이 프로젝트에서 한 일이 없어요" : "‘\(query)’ 와 맞는 작업이 없어요")
@@ -175,12 +185,9 @@ struct ProjectView: View {
     @ViewBuilder
     private var setup: some View {
         if WorkLogAnalytics.configScopes(for: project.path, configs: model.snapshot.configs).isEmpty && project.skillsUsed.isEmpty {
-            Card {
-                EmptyHint(title: "만들어 둔 규칙·스킬이 없어요",
-                          message: "이 폴더나 상위 폴더에 CLAUDE.md, AGENTS.md, .claude/skills 같은 파일이 생기면 여기에 보여요.",
-                          symbol: "wand.and.stars")
-                    .frame(height: 200)
-            }
+            EmptyCard(title: "만들어 둔 규칙·스킬이 없어요",
+                      message: "이 폴더나 상위 폴더에 CLAUDE.md, AGENTS.md, .claude/skills 같은 파일이 생기면 여기에 보여요.",
+                      symbol: "wand.and.stars")
         } else {
             ProjectConfigCard(project: project)
         }
@@ -189,7 +196,9 @@ struct ProjectView: View {
     @ViewBuilder
     private var notes: some View {
         if project.notes.isEmpty {
-            Text("Claude Code 가 이 프로젝트에 대해 남긴 메모가 없어요").foregroundStyle(.secondary)
+            EmptyCard(title: "AI 가 남긴 메모가 없어요",
+                      message: "Claude Code 가 이 프로젝트에 대해 기억해 둘 것이 생기면 여기에 보여요.",
+                      symbol: "note.text")
         } else {
             Card(title: "AI 가 남긴 메모", subtitle: "Claude Code 가 이 프로젝트에 대해 기억해 둔 내용 (\(project.notes.count)개)") {
                 VStack(alignment: .leading, spacing: 0) {
@@ -249,7 +258,9 @@ struct DayWorkCard: View {
         let added = day.entries.reduce(0) { $0 + $1.linesAdded }
         let removed = day.entries.reduce(0) { $0 + $1.linesRemoved }
         let hasSummary = model.summaries[key] != nil
-        let summarized = model.summaryEngine != nil && (hasSummary || DaySummarizer.promptCount(for: day) > 0)
+        // 요약을 끄지 않았으면 저장해 둔 요약은 AI 가 없어도 보여 준다. 새로 만들 수 있을 때만 빈 요약 자리를 둔다.
+        let summarized = model.summaryChoice != .off
+            && (hasSummary || (model.summaryEngine != nil && DaySummarizer.promptCount(for: day) > 0))
         // 검색 중에는 찾은 요청이 보여야 하고, 아직 요약이 없는 오늘은 요청 목록이 본문이다.
         let expanded = searching || (showDetails ?? !hasSummary)
         VStack(alignment: .leading, spacing: 12) {
@@ -357,6 +368,8 @@ struct DaySummaryBox: View {
         let newer = summary == nil ? 0 : (input?.newSince ?? 0)
         let wake = input?.wakeAt
         let failure: String? = if case .failed(let message) = job { message } else { nil }
+        // 요약할 AI 가 없으면 저장해 둔 요약만 보여 주고, 다시 만드는 버튼은 숨긴다.
+        let canSummarize = model.summaryEngine != nil
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -372,6 +385,11 @@ struct DaySummaryBox: View {
                     Text(job == .queued ? "차례를 기다리는 중…" : newer > 0 ? "새 요청을 더하는 중…" : "요약하는 중…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                } else if !canSummarize {
+                    Text("요약할 AI 없음")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .help("저장해 둔 요약이에요. 새로 만들거나 이어 쓰려면 Claude Code·Codex·LM Studio 중 하나가 있어야 해요")
                 } else {
                     Button {
                         model.requestSummary(project: projectPath, name: projectName, day: day, force: true)
@@ -400,7 +418,7 @@ struct DaySummaryBox: View {
                 }
                 .font(.callout)
                 if newer > 0 && !busy {
-                    Text(newerNote(newer, wake: wake))
+                    Text(newerNote(newer, wake: wake, canSummarize: canSummarize))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -431,8 +449,9 @@ struct DaySummaryBox: View {
         .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
-    private func newerNote(_ newer: Int, wake: Date?) -> String {
+    private func newerNote(_ newer: Int, wake: Date?, canSummarize: Bool) -> String {
         let head = "요약한 뒤로 요청이 \(newer)개 더 생겼어요."
+        if !canSummarize { return head + " 요약할 AI 가 없어서 이어 쓰지 못해요" }
         if let wake { return head + " 손을 떼고 30분이 지나면(\(Fmt.time(wake))쯤) 이어서 요약해요" }
         if Calendar.current.isDateInToday(day) { return head }
         return head + " \"이어서 요약\"을 누르면 새 요청만 더해 정리해요"
@@ -443,6 +462,58 @@ struct DaySummaryBox: View {
         if summary == nil { return "기다리지 않고 지금까지 보낸 요청으로 바로 요약해요 (\(destination))" }
         if newer > 0 { return "새 요청 \(newer)개만 \(destination)에 보내 지금 요약에 더해요" }
         return "그날 요청과 결과를 \(destination)에 보내 처음부터 다시 요약해요"
+    }
+}
+
+/// 요약할 AI 를 찾지 못했을 때 날짜 목록 위에 띄우는 안내. 저장해 둔 요약은 그대로 보인다.
+struct NoSummaryEngineNote: View {
+    @Environment(AppModel.self) private var model
+    /// 아무 도구도 없을 때의 안내는 닫을 수 있다 (메뉴의 "요약할 AI 없음"은 그대로).
+    @AppStorage("hideNoSummaryEngineNote") private var hidden = false
+
+    var body: some View {
+        if let engines = model.summaryEngines, model.summaryEngine == nil, model.summaryChoice != .off,
+           !(engines.isEmpty && hidden) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title(engines)).font(.callout.weight(.semibold))
+                    Text(message(engines))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Button("다시 찾기") { model.findSummaryEngines() }
+                if engines.isEmpty {
+                    Button { hidden = true } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.borderless)
+                        .help("안내 닫기")
+                } else {
+                    Button("자동으로 바꾸기") { model.summaryChoice = .auto }
+                }
+            }
+            .controlSize(.small)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+
+    private func title(_ engines: [SummaryEngine]) -> String {
+        guard let kind = model.summaryChoice.kind, !engines.isEmpty else { return "요약해 줄 AI 를 찾지 못했어요" }
+        return kind == .lmStudio ? "LM Studio 서버가 꺼져 있어요" : "고른 \(kind.displayName)를 찾지 못했어요"
+    }
+
+    private func message(_ engines: [SummaryEngine]) -> String {
+        guard let kind = model.summaryChoice.kind, !engines.isEmpty else {
+            return "이 맥에 Claude Code 나 Codex 를 설치하거나 LM Studio 서버를 켜면, 날마다 한 일을 AI 가 몇 줄로 요약해 줘요. "
+                + "그 전까지는 요청 목록을 그대로 보여 주고, 저장해 둔 요약은 그대로 보여요."
+        }
+        let fix = kind == .lmStudio ? "LM Studio 에서 서버를 켠 뒤" : "\(kind.displayName)를 설치한 뒤"
+        return "\(fix) 다시 찾기를 누르거나, 자동으로 바꾸면 이 맥에 있는 \(engines.map(\.displayName).joined(separator: "·"))로 요약해요."
     }
 }
 

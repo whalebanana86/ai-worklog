@@ -38,7 +38,7 @@ struct AIWorkLogApp: App {
                     model.refresh()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    model.refreshIfStale()
+                    model.appBecameActive()
                 }
         }
         .defaultSize(width: 1240, height: 820)
