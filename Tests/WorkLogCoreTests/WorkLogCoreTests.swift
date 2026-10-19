@@ -427,6 +427,42 @@ final class WorkLogCoreTests: XCTestCase {
         XCTAssertEqual(DaySummarizer.plan(for: today, existing: summary, now: now), .wait(until: now.addingTimeInterval(18 * 60)))
     }
 
+    // MARK: - 화면 언어
+
+    func testEveryScreenTextHasTranslations() throws {
+        // 소스에서 L("…") 의 첫 글을 모두 모아 영어·일본어 표에 있는지, 빈자리(%@) 수가 같은지 본다.
+        let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources")
+        let pattern = try NSRegularExpression(pattern: #"(?<![A-Za-z0-9_])L\("((?:[^"\\]|\\.)*)""#)
+        var keys = Set<String>()
+        for case let file as URL in FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)! where file.pathExtension == "swift" {
+            // 주석 속 예시(L("…"))는 빼고 코드만 본다.
+            let text = try String(contentsOf: file, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false)
+                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }.joined(separator: "\n")
+            for match in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                let raw = String(text[Range(match.range(at: 1), in: text)!])
+                keys.insert(raw.replacingOccurrences(of: #"\""#, with: "\"").replacingOccurrences(of: #"\n"#, with: "\n"))
+            }
+        }
+        XCTAssertGreaterThan(keys.count, 300)
+        func holes(_ s: String) -> Int { s.components(separatedBy: "@").count - 1 }
+        for (name, table) in [("en", Translations.en), ("ja", Translations.ja)] {
+            let missing = keys.filter { table[$0] == nil }.sorted()
+            XCTAssertTrue(missing.isEmpty, "\(name) 번역이 없는 글: \(missing.prefix(10))")
+            for key in keys { if let t = table[key] { XCTAssertEqual(holes(t), holes(key), "\(name): \(key) → \(t)") } }
+        }
+    }
+
+    func testFillsHolesInOrderAndByNumber() {
+        XCTAssertEqual(Loc.fill("%@ · %@", ["a", "b"]), "a · b")
+        XCTAssertEqual(Loc.fill("%2$@ in %1$@", ["3", "rules"]), "rules in 3")
+        XCTAssertEqual(Loc.fill("100%% %@", ["done"]), "100% done")
+        XCTAssertEqual(Loc.text("오늘", in: .en), "Today")
+        XCTAssertEqual(Loc.text("오늘", in: .ja), "今日")
+        XCTAssertEqual(Loc.text("없는 열쇠", in: .en), "없는 열쇠")
+        XCTAssertEqual(Loc.singularize("1 requests · 11 requests · 21 files · 1 days ago"), "1 request · 11 requests · 21 files · 1 day ago")
+    }
+
     // MARK: - 설정 찾기
 
     func testFindsRulesSkillsCommandsAndHidesSettingValues() throws {

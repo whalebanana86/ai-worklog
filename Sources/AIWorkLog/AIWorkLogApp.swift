@@ -30,7 +30,9 @@ struct AIWorkLogApp: App {
     @State private var model = AppModel()
 
     var body: some Scene {
-        Window("AI 작업일지", id: "main") {
+        // 메뉴 글자도 언어를 바꾸면 다시 만든다.
+        let _ = model.language
+        Window(L("AI 작업일지"), id: "main") {
             ContentView()
                 .environment(model)
                 .task {
@@ -49,19 +51,19 @@ struct AIWorkLogApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
-            CommandMenu("기록") {
-                Button("새로 고침") { model.refresh() }
+            CommandMenu(L("기록")) {
+                Button(L("새로 고침")) { model.refresh() }
                     .keyboardShortcut("r")
-                Button("이 기간 보고서 만들기") { model.makePeriodReport() }
+                Button(L("이 기간 보고서 만들기")) { model.makePeriodReport() }
                     .keyboardShortcut("e")
                 Divider()
-                Button("한눈에 보기") { model.screen = .dashboard }.keyboardShortcut("1")
-                Button("날짜별 기록") { model.screen = .timeline }.keyboardShortcut("2")
-                Button("모든 요청") { model.screen = .prompts }.keyboardShortcut("3")
-                Button("스킬·규칙") { model.screen = .skills }.keyboardShortcut("4")
+                Button(L("한눈에 보기")) { model.screen = .dashboard }.keyboardShortcut("1")
+                Button(L("날짜별 기록")) { model.screen = .timeline }.keyboardShortcut("2")
+                Button(L("모든 요청")) { model.screen = .prompts }.keyboardShortcut("3")
+                Button(L("스킬·규칙")) { model.screen = .skills }.keyboardShortcut("4")
                 Divider()
-                Button("원본 기록 처음부터 다시 읽기") { model.refresh(rereadSources: true) }
-                Button("보관함 폴더 열기") { if let url = model.storeURL { model.reveal(url.path) } }
+                Button(L("원본 기록 처음부터 다시 읽기")) { model.refresh(rereadSources: true) }
+                Button(L("보관함 폴더 열기")) { if let url = model.storeURL { model.reveal(url.path) } }
             }
         }
     }
@@ -101,6 +103,13 @@ enum LaunchOptions {
                 model.makePeriodReport()
             }
         }
+        if args.contains("--tour") {
+            Task {
+                while !model.hasLoaded || model.isLoading { try? await Task.sleep(for: .milliseconds(100)) }
+                try? await Task.sleep(for: .seconds(1.5))
+                await tour(model)
+            }
+        }
         guard let sid = value("--session") else { return }
         // 기록을 다 읽은 다음에 연다.
         Task {
@@ -109,5 +118,37 @@ enum LaunchOptions {
             try? await Task.sleep(for: .milliseconds(500))
             if let s = model.snapshot.sessions.first(where: { $0.sessionId.hasPrefix(sid) }) { model.open(s) }
         }
+    }
+}
+
+extension LaunchOptions {
+    static let isTour = ProcessInfo.processInfo.arguments.contains("--tour")
+    /// README 첫머리의 20초 시연 영상(`--demo --tour`). 한눈에 보기 → 기간 바꾸기 → 프로젝트의 AI 요약 → 자세히 → 세션 → 스킬·규칙 → 검색.
+    static func tour(_ model: AppModel) async {
+        func wait(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
+        model.screen = .dashboard
+        model.period = .month
+        await wait(3)
+        model.period = .week
+        await wait(1.3)
+        model.period = .month
+        await wait(1.2)
+        model.show(project: DemoData.root + "/todo-app")
+        await wait(1.6)
+        model.tourScrollToTabs += 1
+        await wait(2.6)
+        model.tourExpand = true
+        await wait(2.8)
+        model.tourExpand = false
+        if let session = model.snapshot.sessions.first(where: { $0.sessionId == "demo-todo-app-2" }) { model.open(session) }
+        await wait(3)
+        model.path = []
+        model.screen = .skills
+        await wait(2.3)
+        model.screen = .prompts
+        model.search = "widget"
+        await wait(2.5)
+        model.search = ""
+        model.screen = .dashboard
     }
 }

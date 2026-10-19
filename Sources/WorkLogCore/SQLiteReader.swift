@@ -34,7 +34,7 @@ final class SQLiteReader {
     /// 읽기·쓰기로 연다. 없으면 만든다.
     init(writablePath path: String) throws {
         guard sqlite3_open_v2(path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil) == SQLITE_OK else {
-            let message = db.map { String(cString: sqlite3_errmsg($0)) } ?? "열 수 없음"
+            let message = db.map { String(cString: sqlite3_errmsg($0)) } ?? L("열 수 없음")
             sqlite3_close(db)
             throw QueryError(description: message)
         }
@@ -117,7 +117,7 @@ final class SQLiteReader {
     func exec(_ sql: String) throws {
         var error: UnsafeMutablePointer<CChar>?
         guard sqlite3_exec(db, sql, nil, nil, &error) == SQLITE_OK else {
-            let message = error.map { String(cString: $0) } ?? "실행 실패"
+            let message = error.map { String(cString: $0) } ?? L("실행 실패")
             sqlite3_free(error)
             throw QueryError(description: message)
         }

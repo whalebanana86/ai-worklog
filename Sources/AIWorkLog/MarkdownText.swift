@@ -1,4 +1,5 @@
 import SwiftUI
+import WorkLogCore
 
 /// AI 답변과 메모에 흔한 마크다운(제목, 목록, 코드 블록, 인용, 표)을 가볍게 그린다.
 struct MarkdownText: View {
@@ -154,7 +155,7 @@ struct Collapsible<Content: View>: View {
                     }
                 }
             if isLong {
-                Button(expanded ? "접기" : "더 보기") { withAnimation(.easeOut(duration: 0.15)) { expanded.toggle() } }
+                Button(expanded ? L("접기") : L("더 보기")) { withAnimation(.easeOut(duration: 0.15)) { expanded.toggle() } }
                     .buttonStyle(.link)
                     .font(.caption)
             }

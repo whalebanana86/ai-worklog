@@ -47,18 +47,18 @@ struct DayHeader: View {
             Text(Fmt.relativeDay(day.day) == Fmt.day(day.day) ? Fmt.day(day.day) : "\(Fmt.relativeDay(day.day)) · \(Fmt.day(day.day))")
                 .font(.headline)
                 .foregroundStyle(.primary)
-            Text("세션 \(day.entries.count) · 요청 \(day.promptCount) · \(Fmt.duration(day.activeSeconds))")
+            Text(L("세션 %@ · 요청 %@ · %@", String(day.entries.count), String(day.promptCount), Fmt.duration(day.activeSeconds)))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
             Button {
                 model.makeReport(day: day)
             } label: {
-                Label("이날 보고서", systemImage: "doc.text")
+                Label(L("이날 보고서"), systemImage: "doc.text")
             }
             .buttonStyle(.borderless)
             .font(.caption)
-            .help("이날 한 일을 마크다운으로 정리해요")
+            .help(L("이날 한 일을 마크다운으로 정리해요"))
         }
         .padding(.vertical, 4)
     }
@@ -84,9 +84,9 @@ struct DayEntryRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                     Text(s.title).font(.body.weight(.medium)).lineLimit(1)
-                    if !s.hasTranscript { Chip(text: "요청만 남음", symbol: "text.badge.minus") }
-                    else if s.sourceMissing { Chip(text: "보관본", symbol: "archivebox") }
-                    if s.isAutomated { Chip(text: "자동 실행", symbol: "gearshape") }
+                    if !s.hasTranscript { Chip(text: L("요청만 남음"), symbol: "text.badge.minus") }
+                    else if s.sourceMissing { Chip(text: L("보관본"), symbol: "archivebox") }
+                    if s.isAutomated { Chip(text: L("자동 실행"), symbol: "gearshape") }
                 }
                 if let first = asked.first {
                     Text(first.text.singleLine)
@@ -106,9 +106,9 @@ struct DayEntryRow: View {
                 HStack(spacing: 8) {
                     ToolBadge(tool: s.tool)
                     Label(s.projectName, systemImage: "folder").font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    Text("요청 \(asked.count)").font(.caption).foregroundStyle(.secondary)
+                    Text(L("요청 %@", String(asked.count))).font(.caption).foregroundStyle(.secondary)
                     if !entry.files.isEmpty {
-                        Text("파일 \(entry.files.count)").font(.caption).foregroundStyle(.secondary)
+                        Text(L("파일 %@", String(entry.files.count))).font(.caption).foregroundStyle(.secondary)
                         LineDelta(added: entry.linesAdded, removed: entry.linesRemoved)
                     }
                 }
@@ -148,7 +148,7 @@ struct PromptsView: View {
         let items = self.items
         Group {
             if items.isEmpty && model.hasLoaded {
-                NoRecordsPage(noun: "요청")
+                NoRecordsPage(requests: true)
             } else {
                 List {
                     ForEach(items.prefix(limit)) { item in
@@ -166,7 +166,7 @@ struct PromptsView: View {
                                     Text(item.session.projectName)
                                     Text("·")
                                     Text(item.session.title).lineLimit(1)
-                                    if !item.prompt.files.isEmpty { Text("· 파일 \(item.prompt.files.count)") }
+                                    if !item.prompt.files.isEmpty { Text(L("· 파일 %@", String(item.prompt.files.count))) }
                                 }
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

@@ -58,14 +58,13 @@ public struct AutoSync {
             try data.write(to: agentURL, options: .atomic)
         } catch let error as CocoaError where error.code == .fileWriteNoPermission {
             // 다른 프로그램 설치기가 이 폴더를 관리자(root) 것으로 만들어 두면 사용자 앱은 여기에 쓸 수 없다.
-            throw AutoSyncError(description: "~/Library/LaunchAgents 폴더에 쓸 권한이 없어요. 터미널에서 "
-                                + "sudo chown $USER ~/Library/LaunchAgents 를 한 번 실행한 뒤 다시 켜 주세요.")
+            throw AutoSyncError(description: L("~/Library/LaunchAgents 폴더에 쓸 권한이 없어요. 터미널에서 sudo chown $USER ~/Library/LaunchAgents 를 한 번 실행한 뒤 다시 켜 주세요."))
         }
         if useLaunchctl {
             let status = Self.launchctl(["bootstrap", "gui/\(getuid())", agentURL.path])
             if status != 0 {
                 try? fm.removeItem(at: agentURL)
-                throw AutoSyncError(description: "launchd 에 등록하지 못했어요 (launchctl 종료 코드 \(status))")
+                throw AutoSyncError(description: L("launchd 에 등록하지 못했어요 (launchctl 종료 코드 %@)", String(status)))
             }
         }
     }

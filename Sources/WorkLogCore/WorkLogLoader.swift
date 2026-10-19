@@ -32,7 +32,7 @@ public final class WorkLogLoader: @unchecked Sendable {
             storeError = nil
         } catch {
             store = nil
-            storeError = "보관함을 열지 못했습니다: \(error)"
+            storeError = L("보관함을 열지 못했습니다: %@", "\(error)")
         }
         // 보관함 전에 쓰던 캐시 파일은 이제 필요 없다.
         try? FileManager.default.removeItem(at: storeURL.deletingLastPathComponent().appendingPathComponent("cache.plist"))
@@ -102,7 +102,7 @@ public final class WorkLogLoader: @unchecked Sendable {
                 try store.save(sessions: Array(changed.values), sources: changedSources, notesByRoot: currentNotes)
                 if !changed.isEmpty || !changedSources.isEmpty { store.compact() }
             } catch {
-                warnings.append("보관함에 저장하지 못했습니다: \(error)")
+                warnings.append(L("보관함에 저장하지 못했습니다: %@", "\(error)"))
             }
         }
         return snapshot(notes: notes, warnings: warnings, synced: true)
@@ -147,7 +147,7 @@ public final class WorkLogLoader: @unchecked Sendable {
             archivedNotes = try store.loadNotes()
             sources = try store.loadSources()
         } catch {
-            warnings.append("보관함을 읽지 못했습니다: \(error)")
+            warnings.append(L("보관함을 읽지 못했습니다: %@", "\(error)"))
         }
     }
 
@@ -213,7 +213,7 @@ public final class WorkLogLoader: @unchecked Sendable {
         }
 
         if !failures.isEmpty {
-            warnings.append("Claude Code 기록 \(failures.count)개를 읽지 못했습니다: \(failures.prefix(3).joined(separator: ", "))")
+            warnings.append(L("Claude Code 기록 %@개를 읽지 못했습니다: %@", String(failures.count), failures.prefix(3).joined(separator: ", ")))
         }
         // 메모리에 남기는 읽기 상태에서도 요청 목록은 뺀다 (보관함 세션에 같은 내용이 있다).
         for (path, state) in updated {

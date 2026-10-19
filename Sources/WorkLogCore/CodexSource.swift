@@ -24,7 +24,7 @@ public struct CodexSource {
     public func load(warnings: inout [String]) -> [WorkSession] {
         guard let statePath = latestDatabase(prefix: "state") else { return [] }
         guard let state = SQLiteReader(path: statePath) else {
-            warnings.append("Codex 스레드 목록을 열지 못했습니다: \(statePath)")
+            warnings.append(L("Codex 스레드 목록을 열지 못했습니다: %@", statePath))
             return []
         }
 
@@ -69,7 +69,7 @@ public struct CodexSource {
                 )
             }
         } catch {
-            warnings.append("Codex 스레드 목록을 읽지 못했습니다: \(error)")
+            warnings.append(L("Codex 스레드 목록을 읽지 못했습니다: %@", "\(error)"))
             return []
         }
 
@@ -164,7 +164,7 @@ public struct CodexSource {
                 }
             }
         } catch {
-            warnings.append("Codex 대화 내용을 읽지 못했습니다: \(error)")
+            warnings.append(L("Codex 대화 내용을 읽지 못했습니다: %@", "\(error)"))
         }
 
         for (tid, d) in details {

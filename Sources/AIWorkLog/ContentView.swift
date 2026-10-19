@@ -7,13 +7,17 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var model = model
+        let _ = model.language
         NavigationSplitView {
             Sidebar()
                 .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 320)
         } detail: {
             DetailArea()
         }
-        .searchable(text: $model.search, placement: .sidebar, prompt: "요청·답변·프로젝트 검색")
+        .searchable(text: $model.search, placement: .sidebar, prompt: L("요청·답변·프로젝트 검색"))
+        // 언어를 바꾸면 화면 전체를 새로 그려 모든 글자를 새 언어로 다시 만든다. 차트 축의 날짜도 그 언어로.
+        .id(model.language)
+        .environment(\.locale, model.language.locale)
         .overlay(alignment: .bottom) { toastView }
         .task {
             // 화면 확인용: `--settings` 로 띄우면 설정 창을 연다.
@@ -60,7 +64,7 @@ struct DetailArea: View {
                     if let session = model.session(link.id) {
                         SessionDetailView(session: session)
                     } else {
-                        EmptyHint(title: "세션을 찾을 수 없어요", message: "기록이 지워졌을 수 있어요.")
+                        EmptyHint(title: L("세션을 찾을 수 없어요"), message: L("기록이 지워졌을 수 있어요."))
                     }
                 }
                 .id(link)
@@ -81,19 +85,19 @@ struct DetailArea: View {
                 Button {
                     model.path.removeLast()
                 } label: {
-                    Label("뒤로", systemImage: "chevron.left")
+                    Label(L("뒤로"), systemImage: "chevron.left")
                 }
                 .keyboardShortcut("[", modifiers: .command)
-                .help("이전 화면으로 (⌘[)")
+                .help(L("이전 화면으로 (⌘[)"))
             }
         }
         ToolbarItem(placement: .principal) {
-            Picker("기간", selection: $model.period) {
+            Picker(L("기간"), selection: $model.period) {
                 ForEach(Period.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
             .fixedSize()
-            .help("볼 기간")
+            .help(L("볼 기간"))
         }
         ToolbarItemGroup(placement: .primaryAction) {
             Menu {
@@ -106,19 +110,19 @@ struct DetailArea: View {
                     ))
                 }
                 Divider()
-                Toggle("자동 실행 세션도 보기", isOn: $model.includeAutomated)
+                Toggle(L("자동 실행 세션도 보기"), isOn: $model.includeAutomated)
             } label: {
-                Label("필터", systemImage: model.tools.count < AITool.allCases.count || model.includeAutomated
+                Label(L("필터"), systemImage: model.tools.count < AITool.allCases.count || model.includeAutomated
                       ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
             }
-            .help("AI 도구 고르기")
+            .help(L("AI 도구 고르기"))
 
             Button {
                 model.makePeriodReport()
             } label: {
-                Label("보고서", systemImage: "doc.text")
+                Label(L("보고서"), systemImage: "doc.text")
             }
-            .help("지금 보는 기간의 작업을 마크다운 보고서로 만들기 (⌘E)")
+            .help(L("지금 보는 기간의 작업을 마크다운 보고서로 만들기 (⌘E)"))
             .disabled(model.days.isEmpty)
 
             Button {
@@ -127,10 +131,10 @@ struct DetailArea: View {
                 if model.isLoading && model.hasLoaded {
                     ProgressView().controlSize(.small)
                 } else {
-                    Label("새로 고침", systemImage: "arrow.clockwise")
+                    Label(L("새로 고침"), systemImage: "arrow.clockwise")
                 }
             }
-            .help("기록 다시 읽기 (⌘R)")
+            .help(L("기록 다시 읽기 (⌘R)"))
             .disabled(model.isLoading)
         }
     }
@@ -147,7 +151,7 @@ struct DetailArea: View {
                 ProjectView(project: project)
                     .id(path)
             } else {
-                EmptyHint(title: "이 조건에 맞는 기록이 없어요", message: "검색어나 도구 필터를 바꿔 보세요.", symbol: "folder")
+                EmptyHint(title: L("이 조건에 맞는 기록이 없어요"), message: L("검색어나 도구 필터를 바꿔 보세요."), symbol: "folder")
             }
         }
     }
@@ -155,10 +159,10 @@ struct DetailArea: View {
     private var title: (title: String, subtitle: String) {
         if let link = model.path.last, let s = model.session(link.id) { return (s.title, s.projectName) }
         switch model.screen ?? .dashboard {
-        case .dashboard: return ("한눈에 보기", model.period.longLabel)
-        case .timeline: return ("날짜별 기록", model.period.longLabel)
-        case .prompts: return ("모든 요청", model.search.isEmpty ? "\(model.period.longLabel) · \(Fmt.number(model.totals.prompts))개" : "‘\(model.search)’ 검색")
-        case .skills: return ("스킬·규칙", model.period.longLabel)
+        case .dashboard: return (L("한눈에 보기"), model.period.longLabel)
+        case .timeline: return (L("날짜별 기록"), model.period.longLabel)
+        case .prompts: return (L("모든 요청"), model.search.isEmpty ? L("%@ · %@개", model.period.longLabel, Fmt.number(model.totals.prompts)) : L("‘%@’ 검색", model.search))
+        case .skills: return (L("스킬·규칙"), model.period.longLabel)
         case .project(let path): return (WorkSession.displayName(forPath: path), Fmt.path(path))
         }
     }
@@ -171,15 +175,15 @@ struct Sidebar: View {
         @Bindable var model = model
         List(selection: $model.screen) {
             Section {
-                Label("한눈에 보기", systemImage: "square.grid.2x2").tag(Screen.dashboard)
-                Label("날짜별 기록", systemImage: "calendar").tag(Screen.timeline)
+                Label(L("한눈에 보기"), systemImage: "square.grid.2x2").tag(Screen.dashboard)
+                Label(L("날짜별 기록"), systemImage: "calendar").tag(Screen.timeline)
                     .badge(model.days.count)
-                Label("모든 요청", systemImage: "text.bubble").tag(Screen.prompts)
+                Label(L("모든 요청"), systemImage: "text.bubble").tag(Screen.prompts)
                     .badge(model.totals.prompts)
-                Label("스킬·규칙", systemImage: "wand.and.stars").tag(Screen.skills)
+                Label(L("스킬·규칙"), systemImage: "wand.and.stars").tag(Screen.skills)
             }
 
-            Section("프로젝트") {
+            Section(L("프로젝트")) {
                 ForEach(model.projects) { project in
                     ProjectRow(project: project).tag(Screen.project(project.path))
                 }
@@ -190,9 +194,10 @@ struct Sidebar: View {
     }
 
     private var storeHelp: String {
-        guard let st = model.snapshot.store else { return "보관함을 쓰지 않고 있어요" }
-        var text = "보관함: 세션 \(st.sessions)개, 요청 \(st.prompts)개, \(ByteCountFormatter.string(fromByteCount: Int64(st.bytes), countStyle: .file))"
-        if st.preserved > 0 { text += "\n원본이 지워졌지만 보관함에 남아 있는 세션 \(st.preserved)개" }
+        guard let st = model.snapshot.store else { return L("보관함을 쓰지 않고 있어요") }
+        var text = L("보관함: 세션 %@개, 요청 %@개, %@", String(st.sessions), String(st.prompts),
+                     ByteCountFormatter.string(fromByteCount: Int64(st.bytes), countStyle: .file))
+        if st.preserved > 0 { text += "\n" + L("원본이 지워졌지만 보관함에 남아 있는 세션 %@개", String(st.preserved)) }
         if let url = model.storeURL { text += "\n\(Fmt.path(url.path))" }
         return text
     }
@@ -201,10 +206,10 @@ struct Sidebar: View {
         HStack(spacing: 6) {
             if model.isLoading {
                 ProgressView().controlSize(.mini)
-                Text("기록 읽는 중…")
+                Text(L("기록 읽는 중…"))
             } else if model.hasLoaded {
                 Image(systemName: "archivebox")
-                Text("\(Fmt.time(model.snapshot.loadedAt)) 기준 · 보관함 세션 \(model.snapshot.sessions.count)개")
+                Text(L("%@ 기준 · 보관함 세션 %@개", Fmt.time(model.snapshot.loadedAt), String(model.snapshot.sessions.count)))
                     .help(storeHelp)
             }
             Spacer()
@@ -217,7 +222,7 @@ struct Sidebar: View {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(.borderless)
-            .help("설정: AI 요약, 자동 보관, 보관함 (⌘,)")
+            .help(L("설정: AI 요약, 자동 보관, 보관함 (⌘,)"))
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -237,7 +242,7 @@ struct ProjectRow: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(project.name).lineLimit(1)
-                Text(project.sessions.isEmpty ? "메모만 남음" : Fmt.relativeDay(project.lastActive))
+                Text(project.sessions.isEmpty ? L("메모만 남음") : Fmt.relativeDay(project.lastActive))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -258,8 +263,8 @@ struct LoadingView: View {
             Image(systemName: "book.pages")
                 .font(.system(size: 40))
                 .foregroundStyle(.secondary)
-            Text("AI 작업 기록을 읽고 있어요").font(.title3.weight(.semibold))
-            Text("처음 한 번은 Claude Code·Codex 기록 전체를 읽어서 조금 걸려요.\n다음부터는 늘어난 부분만 읽어요.")
+            Text(L("AI 작업 기록을 읽고 있어요")).font(.title3.weight(.semibold))
+            Text(L("처음 한 번은 Claude Code·Codex 기록 전체를 읽어서 조금 걸려요.\n다음부터는 늘어난 부분만 읽어요."))
                 .multilineTextAlignment(.center)
                 .font(.callout)
                 .foregroundStyle(.secondary)

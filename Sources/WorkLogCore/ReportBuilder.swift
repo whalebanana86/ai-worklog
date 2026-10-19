@@ -14,13 +14,13 @@ public enum ReportBuilder {
         let removed = entries.reduce(0) { $0 + $1.linesRemoved }
 
         var out = "# \(title)\n\n"
-        var stats = ["세션 \(entries.count)개", "요청 \(Fmt.number(prompts))개", "작업 시간 약 \(Fmt.duration(active))"]
-        if added + removed > 0 { stats.append("코드 약 +\(Fmt.number(added)) / −\(Fmt.number(removed))줄") }
+        var stats = [L("세션 %@개", String(entries.count)), L("요청 %@개", Fmt.number(prompts)), L("작업 시간 약 %@", Fmt.duration(active))]
+        if added + removed > 0 { stats.append(L("코드 약 +%@ / −%@줄", Fmt.number(added), Fmt.number(removed))) }
         out += "> " + stats.joined(separator: " · ") + "\n"
         if let ai = summary {
-            out += "\n## 한 일 요약\n\n\(ai.headline)\n\n"
+            out += "\n## " + L("한 일 요약") + "\n\n\(ai.headline)\n\n"
             for point in ai.points { out += "- \(point)\n" }
-            out += "\n_\(ai.engine) 가 요약함_\n"
+            out += "\n_" + L("%@ 가 요약함", ai.engine) + "_\n"
         }
 
         let byProject = Dictionary(grouping: entries, by: \.session.projectPath)
@@ -36,27 +36,27 @@ public enum ReportBuilder {
             for e in items.sorted(by: { $0.firstDate < $1.firstDate }) {
                 let s = e.session
                 out += "\n### \(s.title)\n"
-                var meta = ["\(s.tool.displayName)", Fmt.timeRange(e.firstDate, e.lastDate), "요청 \(e.userPrompts.count)개"]
+                var meta = ["\(s.tool.displayName)", Fmt.timeRange(e.firstDate, e.lastDate), L("요청 %@개", String(e.userPrompts.count))]
                 let files = e.files
-                if !files.isEmpty { meta.append("파일 \(files.count)개") }
-                if let b = s.gitBranch { meta.append("브랜치 `\(b)`") }
+                if !files.isEmpty { meta.append(L("파일 %@개", String(files.count))) }
+                if let b = s.gitBranch { meta.append(L("브랜치 `%@`", b)) }
                 out += "- " + meta.joined(separator: " · ") + "\n"
 
                 let asked = e.userPrompts.filter { !$0.isAutomated || e.userPrompts.count == 1 }
                 if !asked.isEmpty {
-                    out += "- 요청한 일\n"
+                    out += L("- 요청한 일\n")
                     for p in asked.prefix(promptsPerSession) {
                         out += "  - \(p.text.plainLine.clipped(140))\n"
                     }
-                    if asked.count > promptsPerSession { out += "  - …외 \(asked.count - promptsPerSession)개\n" }
+                    if asked.count > promptsPerSession { out += "  - …" + L("외 %@개", String(asked.count - promptsPerSession)) + "\n" }
                 }
                 if !files.isEmpty {
                     let names = files.prefix(6).map { "`\(Fmt.relativePath($0, to: s.projectPath))`" }
-                    let more = files.count > 6 ? " 외 \(files.count - 6)개" : ""
-                    out += "- 고친 파일: " + names.joined(separator: ", ") + more + "\n"
+                    let more = files.count > 6 ? " " + L("외 %@개", String(files.count - 6)) : ""
+                    out += L("- 고친 파일: ") + names.joined(separator: ", ") + more + "\n"
                 }
                 if let reply = e.prompts.last(where: { $0.reply != nil })?.reply {
-                    out += "- 마지막 결과: \(reply.outcomeLine.clipped(220))\n"
+                    out += L("- 마지막 결과: %@", reply.outcomeLine.clipped(220)) + "\n"
                 }
             }
         }

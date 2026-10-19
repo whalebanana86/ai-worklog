@@ -10,21 +10,21 @@ enum Period: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .today: return "오늘"
-        case .week: return "7일"
-        case .month: return "30일"
-        case .quarter: return "90일"
-        case .all: return "전체"
+        case .today: return L("오늘")
+        case .week: return L("7일")
+        case .month: return L("30일")
+        case .quarter: return L("90일")
+        case .all: return L("전체")
         }
     }
 
     var longLabel: String {
         switch self {
-        case .today: return "오늘"
-        case .week: return "최근 7일"
-        case .month: return "최근 30일"
-        case .quarter: return "최근 90일"
-        case .all: return "전체 기간"
+        case .today: return L("오늘")
+        case .week: return L("최근 7일")
+        case .month: return L("최근 30일")
+        case .quarter: return L("최근 90일")
+        case .all: return L("전체 기간")
         }
     }
 
@@ -117,6 +117,21 @@ final class AppModel {
     var tools: Set<AITool> = Set(AITool.allCases) { didSet { recompute() } }
     var includeAutomated = false { didSet { recompute() } }
     var search = "" { didSet { recompute() } }
+
+    /// 화면 언어. 바꾸면 바로 모든 화면 글자가 바뀐다 (ContentView 가 `.id(language)` 로 새로 그린다).
+    var language: AppLanguage = Loc.language {
+        didSet {
+            Loc.language = language
+            UserDefaults.standard.set(language.rawValue, forKey: AppLanguage.defaultsKey)
+            // 편집·윈도우 같은 macOS 기본 메뉴는 다음에 앱을 열 때 이 언어로 나온다.
+            UserDefaults.standard.set([language.rawValue], forKey: "AppleLanguages")
+            recompute()
+        }
+    }
+
+    // 시연 영상(--tour)에서 화면을 움직이는 데 쓴다.
+    var tourExpand = false
+    var tourScrollToTabs = 0
 
     var screen: Screen? = .dashboard
     var path: [SessionLink] = []
@@ -272,7 +287,7 @@ final class AppModel {
         }
     }
 
-    func copy(_ text: String, message: String = "복사했어요") {
+    func copy(_ text: String, message: String = L("복사했어요")) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         flash(message)
@@ -284,14 +299,14 @@ final class AppModel {
             NSWorkspace.shared.activateFileViewerSelecting([url])
         } else if FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path) {
             NSWorkspace.shared.open(url.deletingLastPathComponent())
-            flash("파일이 없어서 폴더를 열었어요")
+            flash(L("파일이 없어서 폴더를 열었어요"))
         } else {
-            flash("지금은 없는 경로예요")
+            flash(L("지금은 없는 경로예요"))
         }
     }
 
     func openTerminal(at path: String) {
-        guard FileManager.default.fileExists(atPath: path) else { flash("지금은 없는 폴더예요"); return }
+        guard FileManager.default.fileExists(atPath: path) else { flash(L("지금은 없는 폴더예요")); return }
         let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
         NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
     }
@@ -320,7 +335,7 @@ final class AppModel {
     /// 고르기 메뉴에 쓰는 이름. 이 맥에 없는 도구는 "없음"을 붙인다.
     func summaryEngineLabel(_ kind: SummaryEngine.Kind) -> String {
         if summaryEngines?.contains(where: { $0.kind == kind }) == true { return kind.displayName }
-        return kind == .lmStudio ? "LM Studio (서버 꺼짐)" : "\(kind.displayName) (설치 안 됨)"
+        return kind == .lmStudio ? L("LM Studio (서버 꺼짐)") : L("%@ (설치 안 됨)", kind.displayName)
     }
 
     func findSummaryEngines() {
@@ -472,9 +487,9 @@ final class AppModel {
         let name = scope.map { "\($0) · " } ?? ""
         let summary = projectPath.flatMap { summaries[summaryKey(project: $0, day: day.day)] }
         report = ReportDraft(
-            title: "\(name)\(Fmt.fullDay(day.day)) 작업일지",
-            markdown: ReportBuilder.markdown(title: "AI 작업일지 · \(name)\(Fmt.fullDay(day.day))", entries: day.entries, summary: summary),
-            fileName: "AI작업일지-\(scope.map { "\($0)-" } ?? "")\(Fmt.isoDay(day.day)).md"
+            title: name + L("%@ 작업일지", Fmt.fullDay(day.day)),
+            markdown: ReportBuilder.markdown(title: L("AI 작업일지") + " · " + name + Fmt.fullDay(day.day), entries: day.entries, summary: summary),
+            fileName: L("AI작업일지") + "-" + (scope.map { "\($0)-" } ?? "") + Fmt.isoDay(day.day) + ".md"
         )
     }
 
@@ -492,9 +507,9 @@ final class AppModel {
             range = days.first.map { Fmt.fullDay($0.day) } ?? period.longLabel
         }
         report = ReportDraft(
-            title: "\(period.longLabel) 작업 보고서",
-            markdown: ReportBuilder.markdown(title: "AI 작업 보고서 · \(range)", entries: merged, promptsPerSession: 3),
-            fileName: "AI작업보고서-\(period.rawValue)-\(Fmt.isoDay(Date())).md"
+            title: L("%@ 작업 보고서", period.longLabel),
+            markdown: ReportBuilder.markdown(title: L("AI 작업 보고서") + " · " + range, entries: merged, promptsPerSession: 3),
+            fileName: L("AI작업보고서") + "-\(period.rawValue)-\(Fmt.isoDay(Date())).md"
         )
     }
 
@@ -503,7 +518,7 @@ final class AppModel {
         report = ReportDraft(
             title: session.title,
             markdown: ReportBuilder.markdown(title: session.title, entries: [entry], promptsPerSession: 20),
-            fileName: "AI작업-\(session.projectName)-\(Fmt.isoDay(session.start)).md"
+            fileName: L("AI작업") + "-\(session.projectName)-\(Fmt.isoDay(session.start)).md"
         )
     }
 }

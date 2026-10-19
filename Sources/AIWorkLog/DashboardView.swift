@@ -13,16 +13,16 @@ struct DashboardView: View {
                     NoRecordsCard()
                 } else {
                     kpis
-                    Card(title: model.period == .today ? "시간대별 요청" : "날짜별 요청",
-                         subtitle: "막대에 마우스를 올리면 도구별 수가 보여요") {
+                    Card(title: model.period == .today ? L("시간대별 요청") : L("날짜별 요청"),
+                         subtitle: L("막대에 마우스를 올리면 도구별 수가 보여요")) {
                         ActivityChart(sessions: model.scoped, period: model.period)
                             .frame(height: 210)
                     }
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 360), spacing: 18, alignment: .top)], spacing: 18) {
-                        Card(title: "프로젝트별 작업 시간", subtitle: "요청을 주고받은 시간 기준") {
+                        Card(title: L("프로젝트별 작업 시간"), subtitle: L("요청을 주고받은 시간 기준")) {
                             ProjectBars(times: Array(WorkLogAnalytics.projectTimes(model.days).prefix(8)))
                         }
-                        Card(title: "언제 일했나", subtitle: "요일·시간대별 요청 수") {
+                        Card(title: L("언제 일했나"), subtitle: L("요일·시간대별 요청 수")) {
                             WeekHourHeatmap(grid: WorkLogAnalytics.weekHourGrid(model.scoped))
                         }
                     }
@@ -51,24 +51,24 @@ struct DashboardView: View {
 
     private var summarySentence: String {
         let t = model.totals
-        guard t.prompts > 0 else { return model.snapshot.sessions.isEmpty ? "아직 AI 에게 맡긴 일이 없어요." : "이 기간에는 AI 에게 맡긴 일이 없어요." }
-        return "프로젝트 \(t.projects)곳에서 AI 에게 \(Fmt.number(t.prompts))번 요청하고, 약 \(Fmt.duration(t.activeSeconds)) 함께 작업했어요."
+        guard t.prompts > 0 else { return model.snapshot.sessions.isEmpty ? L("아직 AI 에게 맡긴 일이 없어요.") : L("이 기간에는 AI 에게 맡긴 일이 없어요.") }
+        return L("프로젝트 %@곳에서 AI 에게 %@번 요청하고, 약 %@ 함께 작업했어요.", String(t.projects), Fmt.number(t.prompts), Fmt.duration(t.activeSeconds))
     }
 
     private var kpis: some View {
         let t = model.totals
         return TileRows(tiles: [
-            StatTile(label: "작업 시간", value: Fmt.duration(t.activeSeconds), caption: "10분 넘게 쉰 시간은 뺐어요", symbol: "clock"),
-            StatTile(label: "요청", value: Fmt.number(t.prompts), caption: "세션 \(Fmt.number(t.sessions))개", symbol: "text.bubble"),
-            StatTile(label: "작업한 날", value: "\(t.activeDays)일", caption: "프로젝트 \(t.projects)곳", symbol: "calendar"),
-            StatTile(label: "고친 파일", value: Fmt.number(t.files), caption: "+\(Fmt.compact(t.linesAdded)) / −\(Fmt.compact(t.linesRemoved))줄 (어림)", symbol: "doc.badge.ellipsis"),
-            StatTile(label: "사용 비용", value: t.costUSD > 0 ? Fmt.cost(t.costUSD) : "–", caption: "Claude Code 기록 기준", symbol: "dollarsign.circle"),
-            StatTile(label: "토큰", value: Fmt.compact(t.tokens), caption: "캐시 읽기 포함", symbol: "number"),
+            StatTile(label: L("작업 시간"), value: Fmt.duration(t.activeSeconds), caption: L("10분 넘게 쉰 시간은 뺐어요"), symbol: "clock"),
+            StatTile(label: L("요청"), value: Fmt.number(t.prompts), caption: L("세션 %@개", Fmt.number(t.sessions)), symbol: "text.bubble"),
+            StatTile(label: L("작업한 날"), value: L("%@일", String(t.activeDays)), caption: L("프로젝트 %@곳", String(t.projects)), symbol: "calendar"),
+            StatTile(label: L("고친 파일"), value: Fmt.number(t.files), caption: L("+%@ / −%@줄 (어림)", Fmt.compact(t.linesAdded), Fmt.compact(t.linesRemoved)), symbol: "doc.badge.ellipsis"),
+            StatTile(label: L("사용 비용"), value: t.costUSD > 0 ? Fmt.cost(t.costUSD) : "–", caption: L("Claude Code 기록 기준"), symbol: "dollarsign.circle"),
+            StatTile(label: L("토큰"), value: Fmt.compact(t.tokens), caption: L("캐시 읽기 포함"), symbol: "number"),
         ])
     }
 
     private var recent: some View {
-        Card(title: "최근 작업") {
+        Card(title: L("최근 작업")) {
             let items = Array(model.scoped.prefix(6))
             VStack(spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, session in
@@ -78,7 +78,7 @@ struct DashboardView: View {
                 }
             }
             if model.scoped.count > 6 {
-                Button("날짜별 기록에서 모두 보기 →") { model.screen = .timeline }
+                Button(L("날짜별 기록에서 모두 보기 →")) { model.screen = .timeline }
                     .buttonStyle(.link)
                     .font(.callout)
             }
@@ -86,14 +86,14 @@ struct DashboardView: View {
     }
 
     private var toolsCard: some View {
-        Card(title: "AI 가 많이 쓴 도구", subtitle: "이 기간에 걸친 세션 전체 기준") {
+        Card(title: L("AI 가 많이 쓴 도구"), subtitle: L("이 기간에 걸친 세션 전체 기준")) {
             let tools = WorkLogAnalytics.toolTotals(model.scoped).prefix(14)
             if tools.isEmpty {
-                Text("도구 기록이 없어요").foregroundStyle(.secondary)
+                Text(L("도구 기록이 없어요")).foregroundStyle(.secondary)
             } else {
                 FlowLayout(spacing: 6) {
                     ForEach(Array(tools), id: \.name) { item in
-                        Chip(text: "\(ToolLabel.korean(item.name)) \(Fmt.compact(item.count))", symbol: ToolLabel.symbol(item.name))
+                        Chip(text: "\(ToolLabel.label(item.name)) \(Fmt.compact(item.count))", symbol: ToolLabel.symbol(item.name))
                     }
                 }
             }
@@ -101,14 +101,14 @@ struct DashboardView: View {
     }
 
     private var modelsCard: some View {
-        Card(title: "모델별 사용량", subtitle: "이 기간에 걸친 세션 전체 기준") {
+        Card(title: L("모델별 사용량"), subtitle: L("이 기간에 걸친 세션 전체 기준")) {
             let rows = WorkLogAnalytics.modelTotals(model.scoped).prefix(6)
             if rows.isEmpty {
-                Text("모델 기록이 없어요").foregroundStyle(.secondary)
+                Text(L("모델 기록이 없어요")).foregroundStyle(.secondary)
             } else {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                     GridRow {
-                        Text("모델"); Text("세션").gridColumnAlignment(.trailing); Text("토큰").gridColumnAlignment(.trailing); Text("비용").gridColumnAlignment(.trailing)
+                        Text(L("모델")); Text(L("세션")).gridColumnAlignment(.trailing); Text(L("토큰")).gridColumnAlignment(.trailing); Text(L("비용")).gridColumnAlignment(.trailing)
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -143,18 +143,18 @@ struct SessionRow: View {
                 HStack(spacing: 8) {
                     Text(session.title).font(.body.weight(.medium)).lineLimit(1)
                     if !session.hasTranscript {
-                        Chip(text: "요청만 남음", symbol: "text.badge.minus").help("대화 원본은 지워지고 입력한 요청 기록만 남은 세션이에요")
+                        Chip(text: L("요청만 남음"), symbol: "text.badge.minus").help(L("대화 원본은 지워지고 입력한 요청 기록만 남은 세션이에요"))
                     } else if session.sourceMissing {
-                        Chip(text: "보관본", symbol: "archivebox").help("원본은 지워졌지만 이 앱 보관함에 남아 있어요")
+                        Chip(text: L("보관본"), symbol: "archivebox").help(L("원본은 지워졌지만 이 앱 보관함에 남아 있어요"))
                     }
                 }
                 HStack(spacing: 8) {
                     ToolBadge(tool: session.tool)
                     Text(session.projectName).font(.caption).foregroundStyle(.secondary)
                     Text("·").foregroundStyle(.tertiary)
-                    Text("요청 \(prompts.count)").font(.caption).foregroundStyle(.secondary)
+                    Text(L("요청 %@", String(prompts.count))).font(.caption).foregroundStyle(.secondary)
                     if !session.files.isEmpty {
-                        Text("· 파일 \(session.files.count)").font(.caption).foregroundStyle(.secondary)
+                        Text(L("· 파일 %@", String(session.files.count))).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -241,19 +241,19 @@ struct ActivityChart: View {
     private func chart(data: [Bucket], tools: [AITool]) -> some View {
         Chart {
             ForEach(data) { b in
-                BarMark(x: .value("날짜", b.date, unit: unit), y: .value("요청", b.count), width: .ratio(0.7))
-                    .foregroundStyle(by: .value("도구", b.tool.displayName))
+                BarMark(x: .value(L("날짜"), b.date, unit: unit), y: .value(L("요청"), b.count), width: .ratio(0.7))
+                    .foregroundStyle(by: .value(L("도구"), b.tool.displayName))
                     .cornerRadius(2)
             }
             // 마우스를 올린 막대 뒤의 옅은 띠. 툴팁은 여기 붙이지 않는다(붙이면 같이 막대 뒤로 깔린다).
             if let hovered {
-                RuleMark(x: .value("선택", hovered, unit: unit))
+                RuleMark(x: .value(L("선택"), hovered, unit: unit))
                     .foregroundStyle(Color.secondary.opacity(0.15))
                     .lineStyle(StrokeStyle(lineWidth: 18))
                     .zIndex(-1)
             }
             if let picked {
-                RuleMark(x: .value("고른 날", picked, unit: unit))
+                RuleMark(x: .value(L("고른 날"), picked, unit: unit))
                     .foregroundStyle(Color.accentColor.opacity(0.18))
                     .lineStyle(StrokeStyle(lineWidth: 18))
                     .zIndex(-1)
@@ -272,7 +272,7 @@ struct ActivityChart: View {
             if unit == .hour {
                 AxisMarks(values: .stride(by: .hour, count: 3)) { value in
                     AxisValueLabel(centered: false) {
-                        if let d = value.as(Date.self) { Text("\(Calendar.current.component(.hour, from: d))시") }
+                        if let d = value.as(Date.self) { Text(L("%@시", String(Calendar.current.component(.hour, from: d)))) }
                     }
                     .foregroundStyle(Color.axisInk)
                 }
@@ -291,7 +291,8 @@ struct ActivityChart: View {
                 Rectangle().fill(.clear).contentShape(Rectangle())
                     .onContinuousHover { phase in
                         switch phase {
-                        case .active(let location): hovered = bucketDate(at: location, proxy: proxy, frame: frame)
+                        // 시연 영상(--tour)에서는 실제 마우스 자리에 따라 툴팁이 뜨지 않게.
+                        case .active(let location): hovered = LaunchOptions.isTour ? nil : bucketDate(at: location, proxy: proxy, frame: frame)
                         case .ended: hovered = nil
                         }
                     }
@@ -333,10 +334,10 @@ struct ActivityChart: View {
             Text(unit == .hour ? "\(Fmt.time(date)) ~ \(Fmt.time(date.addingTimeInterval(3600)))" : Fmt.day(date))
                 .font(.caption.weight(.semibold))
             if onPick != nil && !rows.isEmpty {
-                Text("누르면 그날 한 일만 보기").font(.caption2).foregroundStyle(.tertiary)
+                Text(L("누르면 그날 한 일만 보기")).font(.caption2).foregroundStyle(.tertiary)
             }
             if rows.isEmpty {
-                Text("요청 없음").font(.caption).foregroundStyle(.secondary)
+                Text(L("요청 없음")).font(.caption).foregroundStyle(.secondary)
             } else {
                 ForEach(rows) { r in
                     HStack(spacing: 6) {
@@ -349,7 +350,7 @@ struct ActivityChart: View {
                 }
                 if rows.count > 1 {
                     Divider()
-                    HStack { Text("합계").foregroundStyle(.secondary); Spacer(); Text("\(total)").monospacedDigit() }.font(.caption)
+                    HStack { Text(L("합계")).foregroundStyle(.secondary); Spacer(); Text("\(total)").monospacedDigit() }.font(.caption)
                 }
             }
         }
@@ -391,7 +392,7 @@ struct ProjectBars: View {
 
     var body: some View {
         if times.isEmpty {
-            Text("기록이 없어요").foregroundStyle(.secondary)
+            Text(L("기록이 없어요")).foregroundStyle(.secondary)
         } else {
             let maxSeconds = times.map(\.seconds).max() ?? 1
             VStack(alignment: .leading, spacing: 10) {
@@ -401,7 +402,7 @@ struct ProjectBars: View {
                             HStack {
                                 Text(t.name).font(.callout).lineLimit(1)
                                 Spacer()
-                                Text("\(Fmt.duration(t.seconds)) · 요청 \(t.prompts)")
+                                Text(L("%@ · 요청 %@", Fmt.duration(t.seconds), String(t.prompts)))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
@@ -417,7 +418,7 @@ struct ProjectBars: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("\(Fmt.path(t.path)) 프로젝트 보기")
+                    .help(L("%@ 프로젝트 보기", Fmt.path(t.path)))
                 }
             }
         }
@@ -429,20 +430,20 @@ struct WeekHourHeatmap: View {
     var grid: [[Int]]
 
     private let order = [1, 2, 3, 4, 5, 6, 0]
-    private let names = ["일", "월", "화", "수", "목", "금", "토"]
+    private let names = [L("일"), L("월"), L("화"), L("수"), L("목"), L("금"), L("토")]
 
     var body: some View {
         let maxValue = max(grid.flatMap { $0 }.max() ?? 0, 1)
         VStack(alignment: .leading, spacing: 3) {
             ForEach(order, id: \.self) { w in
                 HStack(spacing: 3) {
-                    Text(names[w]).font(.caption2).foregroundStyle(.secondary).frame(width: 16, alignment: .leading)
+                    Text(names[w]).font(.caption2).foregroundStyle(.secondary).frame(width: 20, alignment: .leading)
                     ForEach(0..<24, id: \.self) { h in
                         let v = grid[w][h]
                         RoundedRectangle(cornerRadius: 2)
                             .fill(v == 0 ? Color.secondary.opacity(0.08) : Color.heat(level(v, maxValue)))
                             .aspectRatio(1, contentMode: .fit)
-                            .help("\(names[w])요일 \(h)시 · 요청 \(v)개")
+                            .help(L("%@요일 %@시 · 요청 %@개", names[w], String(h), String(v)))
                     }
                 }
             }
@@ -450,7 +451,7 @@ struct WeekHourHeatmap: View {
                 Spacer().frame(width: 16)
                 ForEach(0..<24, id: \.self) { h in
                     // 칸이 좁아도 "12" 가 두 줄로 쪼개지지 않게 옆 칸으로 넘치게 둔다.
-                    Text(h % 6 == 0 ? "\(h)시" : "")
+                    Text(h % 6 == 0 ? L("%@시", String(h)) : "")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize()
@@ -459,11 +460,11 @@ struct WeekHourHeatmap: View {
             }
             HStack(spacing: 4) {
                 Spacer()
-                Text("적음").font(.caption2).foregroundStyle(.secondary)
+                Text(L("적음")).font(.caption2).foregroundStyle(.secondary)
                 ForEach(0..<6, id: \.self) { i in
                     RoundedRectangle(cornerRadius: 2).fill(Color.heat(i)).frame(width: 10, height: 10)
                 }
-                Text("많음").font(.caption2).foregroundStyle(.secondary)
+                Text(L("많음")).font(.caption2).foregroundStyle(.secondary)
             }
             .padding(.top, 4)
         }
@@ -480,26 +481,28 @@ extension Int {
 
 /// AI 도구 이름을 알아보기 쉽게.
 enum ToolLabel {
-    static func korean(_ name: String) -> String {
+    /// 화면에 쓰는 도구 이름. Codex 기록의 한국어 이름("파일 수정")은 보관함에 그대로 두고 보여 줄 때만 번역한다.
+    static func label(_ name: String) -> String {
         switch name {
-        case "Bash": return "터미널 명령"
-        case "Read": return "파일 읽기"
-        case "Edit", "MultiEdit": return "파일 수정"
-        case "Write": return "파일 쓰기"
-        case "Grep": return "내용 검색"
-        case "Glob": return "파일 찾기"
-        case "WebSearch": return "웹 검색"
-        case "WebFetch": return "웹 페이지 읽기"
-        case "Agent", "Task": return "서브에이전트"
-        case "TodoWrite": return "할 일 목록"
-        case "Skill": return "스킬"
-        case "ToolSearch": return "도구 불러오기"
-        case "AskUserQuestion": return "질문하기"
-        case "NotebookEdit": return "노트북 수정"
-        default: return name
+        case "Bash": return L("터미널 명령")
+        case "Read": return L("파일 읽기")
+        case "Edit", "MultiEdit": return L("파일 수정")
+        case "Write": return L("파일 쓰기")
+        case "Grep": return L("내용 검색")
+        case "Glob": return L("파일 찾기")
+        case "WebSearch": return L("웹 검색")
+        case "WebFetch": return L("웹 페이지 읽기")
+        case "Agent", "Task": return L("서브에이전트")
+        case "TodoWrite": return L("할 일 목록")
+        case "Skill": return L("스킬")
+        case "ToolSearch": return L("도구 불러오기")
+        case "AskUserQuestion": return L("질문하기")
+        case "NotebookEdit": return L("노트북 수정")
+        default: return L(name)
         }
     }
 
+    /// 보관함에 저장된 도구 이름(Codex 는 한국어 이름)과 견주니 번역하지 않는다.
     static func symbol(_ name: String) -> String {
         switch name {
         case "Bash", "명령 실행": return "terminal"

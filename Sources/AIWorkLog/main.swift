@@ -7,4 +7,10 @@ let arguments = CommandLine.arguments
 if arguments.count > 1, arguments[1] == "cli" {
     exit(WorkLogCommand.run(Array(arguments.dropFirst(2))))
 }
+// 화면 언어: 설정에서 고른 것, 없으면 맥 언어. 화면 확인용 `--lang en|ja|ko` 는 저장하지 않고 이번에만 쓴다.
+if let i = arguments.firstIndex(of: "--lang"), i + 1 < arguments.count, let language = AppLanguage(rawValue: arguments[i + 1]) {
+    Loc.language = language
+} else {
+    Loc.language = AppLanguage.saved ?? .system
+}
 AIWorkLogApp.main()

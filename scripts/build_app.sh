@@ -39,9 +39,12 @@ if [ ! -f Support/AppIcon.icns ]; then
 fi
 
 # 크기 우선 최적화(-Osize). 일반 release 빌드와 섞이지 않게 빌드 폴더를 따로 쓴다.
+# UNIVERSAL=1 이면 Apple 실리콘·인텔 맥 둘 다 도는 실행 파일 (배포용, GitHub Releases).
 BUILD_PATH=".build/app-release"
-swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH"
-BIN="$(swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH" --show-bin-path)"
+ARCHS=()
+if [ "${UNIVERSAL:-0}" = 1 ]; then BUILD_PATH=".build/app-universal"; ARCHS=(--arch arm64 --arch x86_64); fi
+swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"}
+BIN="$(swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -50,6 +53,8 @@ cp "$BIN/AIWorkLog" "$APP/Contents/MacOS/AIWorkLog"
 strip -x "$APP/Contents/MacOS/AIWorkLog"
 cp Support/Info.plist "$APP/Contents/Info.plist"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# 앱 이름을 언어마다 (AI 작업일지 / AI Worklog / AI作業日誌).
+cp -R Support/*.lproj "$APP/Contents/Resources/"
 # 내 맥에서만 쓰는 앱이라 개발자 인증서 없이 임시 서명한다.
 codesign --force --sign - "$APP" >/dev/null
 echo "만들었어요: $APP ($(du -sh "$APP" | cut -f1))"

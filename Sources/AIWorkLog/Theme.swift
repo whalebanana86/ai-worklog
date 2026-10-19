@@ -152,7 +152,7 @@ struct LineDelta: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if approximate { Text("약").foregroundStyle(.tertiary) }
+            if approximate { Text(L("약")).foregroundStyle(.tertiary) }
             Text("+\(Fmt.number(added))").foregroundStyle(Color.added)
             Text("−\(Fmt.number(removed))").foregroundStyle(Color.removed)
         }
@@ -288,7 +288,7 @@ struct LoadMoreRow: View {
     var body: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text("\(Fmt.number(remaining))개 더 불러오는 중…").font(.caption).foregroundStyle(.secondary)
+            Text(L("%@개 더 불러오는 중…", Fmt.number(remaining))).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)

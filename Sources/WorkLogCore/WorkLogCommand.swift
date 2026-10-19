@@ -133,7 +133,8 @@ public enum WorkLogCommand {
                   let material = DaySummarizer.material(for: day, projectName: name) else { continue }
             let started = Date()
             do {
-                let result = try blocking { try await DaySummarizer.summarize(material, with: engine) }
+                // 요약은 앱에서 고른 화면 언어로 쓴다 (터미널 안내는 한국어 그대로).
+                let result = try blocking { try await DaySummarizer.summarize(material, with: engine, language: AppLanguage.saved ?? .ko) }
                 let count = DaySummarizer.promptCount(for: day)
                 print("\n## \(name)  (요청 \(count)개, \(String(format: "%.1f", Date().timeIntervalSince(started)))초)")
                 print(result.headline)
@@ -222,7 +223,8 @@ public enum WorkLogCommand {
                 var stopped: String?
                 func work(_ job: SummaryJob) async -> (SummaryJob, String?) {
                     do {
-                        let result = try await DaySummarizer.summarize(job.material, with: engine, previous: job.previous)
+                        let result = try await DaySummarizer.summarize(job.material, with: engine, previous: job.previous,
+                                                                       language: AppLanguage.saved ?? .ko)
                         try store.saveSummary(DaySummary(project: job.project, day: job.day, digest: job.digest,
                                                          engine: engine.displayName, headline: result.headline, points: result.points,
                                                          promptCount: job.promptCount, coveredUntil: job.coveredUntil))

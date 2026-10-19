@@ -48,10 +48,10 @@ struct SessionDetailView: View {
             LazyVStack(alignment: .leading, spacing: 18) {
                 header
                 stats
-                Picker("보기", selection: $tab) {
-                    Text("대화 흐름 \(session.userPrompts.count)").tag(Tab.conversation)
-                    Text("고친 파일 \(session.files.count)").tag(Tab.files)
-                    Text("도구 · 모델").tag(Tab.tools)
+                Picker(L("보기"), selection: $tab) {
+                    Text(L("대화 흐름 %@", String(session.userPrompts.count))).tag(Tab.conversation)
+                    Text(L("고친 파일 %@", String(session.files.count))).tag(Tab.files)
+                    Text(L("도구 · 모델")).tag(Tab.tools)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -81,18 +81,18 @@ struct SessionDetailView: View {
             HStack(spacing: 8) {
                 ToolBadge(tool: session.tool)
                 if !session.hasTranscript {
-                    Chip(text: "요청만 남음", symbol: "text.badge.minus")
-                        .help("대화 원본은 Claude Code 정리 기간이 지나 지워지고, 입력한 요청 기록만 남아 있어요")
+                    Chip(text: L("요청만 남음"), symbol: "text.badge.minus")
+                        .help(L("대화 원본은 Claude Code 정리 기간이 지나 지워지고, 입력한 요청 기록만 남아 있어요"))
                 }
-                if session.isAutomated { Chip(text: "자동 실행", symbol: "gearshape") }
-                if session.subagents > 0 { Chip(text: "서브에이전트 \(session.subagents)", symbol: "person.2") }
+                if session.isAutomated { Chip(text: L("자동 실행"), symbol: "gearshape") }
+                if session.subagents > 0 { Chip(text: L("서브에이전트 %@", String(session.subagents)), symbol: "person.2") }
                 if session.sourceMissing {
-                    Chip(text: "보관본", symbol: "archivebox")
-                        .help("원본 기록 파일은 지워졌지만, 이 앱 보관함에 저장해 둔 내용이에요")
+                    Chip(text: L("보관본"), symbol: "archivebox")
+                        .help(L("원본 기록 파일은 지워졌지만, 이 앱 보관함에 저장해 둔 내용이에요"))
                 }
                 ForEach(session.skillsUsed.sorted { $0.value > $1.value }.prefix(4), id: \.key) { name, count in
                     Chip(text: count > 1 ? "\(name) ×\(count)" : name, symbol: "wand.and.stars")
-                        .help("이 세션에서 쓴 스킬·명령")
+                        .help(L("이 세션에서 쓴 스킬·명령"))
                 }
             }
             Text(session.title)
@@ -110,7 +110,7 @@ struct SessionDetailView: View {
             }
             .font(.callout)
             if session.cwd != session.projectPath, !session.cwd.isEmpty {
-                Text("\(Fmt.path(session.cwd)) 에서 실행").font(.caption).foregroundStyle(.secondary)
+                Text(L("%@ 에서 실행", Fmt.path(session.cwd))).font(.caption).foregroundStyle(.secondary)
             }
             actions
         }
@@ -120,38 +120,38 @@ struct SessionDetailView: View {
         HStack(spacing: 8) {
             if let command = session.tool.resumeCommand(sessionId: session.sessionId, cwd: session.cwd), session.hasTranscript {
                 Button {
-                    model.copy(command, message: "터미널에 붙여 넣으면 이 대화를 이어서 할 수 있어요")
+                    model.copy(command, message: L("터미널에 붙여 넣으면 이 대화를 이어서 할 수 있어요"))
                 } label: {
-                    Label("이어서 작업하기", systemImage: "arrow.uturn.forward")
+                    Label(L("이어서 작업하기"), systemImage: "arrow.uturn.forward")
                 }
                 .help(command)
             }
             if !session.cwd.isEmpty {
                 Button { model.openTerminal(at: session.projectPath.hasPrefix("/") ? session.projectPath : session.cwd) } label: {
-                    Label("터미널 열기", systemImage: "terminal")
+                    Label(L("터미널 열기"), systemImage: "terminal")
                 }
             }
             if let source = session.sourcePath, !session.sourceMissing {
-                Button { model.reveal(source) } label: { Label("원본 기록", systemImage: "doc.text.magnifyingglass") }
+                Button { model.reveal(source) } label: { Label(L("원본 기록"), systemImage: "doc.text.magnifyingglass") }
                     .help(Fmt.path(source))
             }
-            Button { model.makeReport(session: session) } label: { Label("보고서", systemImage: "doc.text") }
+            Button { model.makeReport(session: session) } label: { Label(L("보고서"), systemImage: "doc.text") }
         }
         .controlSize(.small)
     }
 
     private var stats: some View {
         var tiles = [
-            StatTile(label: "작업 시간", value: Fmt.duration(session.activeSeconds), caption: Fmt.timeRange(session.start, session.end), symbol: "clock"),
-            StatTile(label: "요청", value: Fmt.number(session.userPrompts.count), caption: nil, symbol: "text.bubble"),
-            StatTile(label: "고친 파일", value: Fmt.number(session.files.count), caption: nil, symbol: "doc"),
-            StatTile(label: "코드 변경", value: "+\(Fmt.compact(session.linesAdded ?? 0))",
-                     caption: "−\(Fmt.compact(session.linesRemoved ?? 0))줄", symbol: "plus.forwardslash.minus"),
+            StatTile(label: L("작업 시간"), value: Fmt.duration(session.activeSeconds), caption: Fmt.timeRange(session.start, session.end), symbol: "clock"),
+            StatTile(label: L("요청"), value: Fmt.number(session.userPrompts.count), caption: nil, symbol: "text.bubble"),
+            StatTile(label: L("고친 파일"), value: Fmt.number(session.files.count), caption: nil, symbol: "doc"),
+            StatTile(label: L("코드 변경"), value: "+\(Fmt.compact(session.linesAdded ?? 0))",
+                     caption: L("−%@줄", Fmt.compact(session.linesRemoved ?? 0)), symbol: "plus.forwardslash.minus"),
         ]
         if let cost = session.costUSD {
-            tiles.append(StatTile(label: "비용", value: Fmt.cost(cost), caption: nil, symbol: "dollarsign.circle"))
+            tiles.append(StatTile(label: L("비용"), value: Fmt.cost(cost), caption: nil, symbol: "dollarsign.circle"))
         }
-        tiles.append(StatTile(label: "토큰", value: Fmt.compact(session.totalTokens), caption: nil, symbol: "number"))
+        tiles.append(StatTile(label: L("토큰"), value: Fmt.compact(session.totalTokens), caption: nil, symbol: "number"))
         return TileRows(tiles: tiles)
     }
 
@@ -165,14 +165,14 @@ struct SessionDetailView: View {
         // Group 의 자식은 바깥 LazyVStack 에 하나씩 풀려 들어가서 턴마다 따로 늦게 그려진다.
         Group {
             HStack(spacing: 12) {
-                Label("최신 대화가 위", systemImage: "arrow.down").font(.caption).foregroundStyle(.secondary)
+                Label(L("최신 대화가 위"), systemImage: "arrow.down").font(.caption).foregroundStyle(.secondary)
                 if hasCommands {
-                    Toggle("슬래시 명령도 보기", isOn: $showCommands).toggleStyle(.checkbox).font(.caption)
+                    Toggle(L("슬래시 명령도 보기"), isOn: $showCommands).toggleStyle(.checkbox).font(.caption)
                 }
             }
             if filterActive { filterBar(shown: turns.count) }
             if turns.isEmpty {
-                Text(allTurns.isEmpty ? "남은 요청이 없어요" : "조건에 맞는 대화가 없어요").foregroundStyle(.secondary)
+                Text(allTurns.isEmpty ? L("남은 요청이 없어요") : L("조건에 맞는 대화가 없어요")).foregroundStyle(.secondary)
             }
             ForEach(Array(page.enumerated()), id: \.element.offset) { position, turn in
                 let previous = position > 0 ? page[page.index(page.startIndex, offsetBy: position - 1)].element.date : nil
@@ -185,7 +185,7 @@ struct SessionDetailView: View {
                     .id(visibleCount)
             }
             if !session.hasTranscript {
-                Label("대화 원본이 지워져서 AI 답변은 볼 수 없어요. 입력한 요청만 남아 있어요.", systemImage: "info.circle")
+                Label(L("대화 원본이 지워져서 AI 답변은 볼 수 없어요. 입력한 요청만 남아 있어요."), systemImage: "info.circle")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -195,17 +195,17 @@ struct SessionDetailView: View {
     /// 위쪽 검색어·기간으로 대화를 거르고 있다는 안내.
     private func filterBar(shown: Int) -> some View {
         var conditions: [String] = []
-        if !query.isEmpty { conditions.append("‘\(query)’ 검색") }
+        if !query.isEmpty { conditions.append(L("‘%@’ 검색", query)) }
         if model.period != .all { conditions.append(model.period.longLabel) }
         return HStack(spacing: 10) {
             Image(systemName: "line.3.horizontal.decrease.circle.fill").foregroundStyle(Color.accentColor)
             if showAllTurns {
-                Text("\(conditions.joined(separator: " · ")) 조건을 끄고 대화 전체 \(allTurns.count)개를 보는 중")
+                Text(L("%@ 조건을 끄고 대화 전체 %@개를 보는 중", conditions.joined(separator: " · "), String(allTurns.count)))
             } else {
-                Text("\(conditions.joined(separator: " · ")) — 대화 \(allTurns.count)개 중 \(shown)개")
+                Text(L("%@ — 대화 %@개 중 %@개", conditions.joined(separator: " · "), String(allTurns.count), String(shown)))
             }
             Spacer()
-            Button(showAllTurns ? "조건 다시 적용" : "전체 대화 보기") { showAllTurns.toggle() }
+            Button(showAllTurns ? L("조건 다시 적용") : L("전체 대화 보기")) { showAllTurns.toggle() }
                 .controlSize(.small)
         }
         .font(.callout)
@@ -219,7 +219,7 @@ struct SessionDetailView: View {
     private var files: some View {
         Card {
             if session.files.isEmpty {
-                Text(session.hasTranscript ? "이 세션에서 고친 파일이 없어요" : "대화 원본이 없어서 고친 파일을 알 수 없어요")
+                Text(session.hasTranscript ? L("이 세션에서 고친 파일이 없어요") : L("대화 원본이 없어서 고친 파일을 알 수 없어요"))
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
@@ -232,13 +232,13 @@ struct SessionDetailView: View {
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer()
-                                Text("\(file.edits)번 수정").font(.caption).foregroundStyle(.secondary)
+                                Text(L("%@번 수정", String(file.edits))).font(.caption).foregroundStyle(.secondary)
                             }
                             .padding(.vertical, 6)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help("Finder 에서 보기: \(Fmt.path(file.path))")
+                        .help(L("Finder 에서 보기: %@", Fmt.path(file.path)))
                         if index < session.files.count - 1 { Divider() }
                     }
                 }
@@ -250,21 +250,21 @@ struct SessionDetailView: View {
 
     private var toolsAndModels: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Card(title: "AI 가 쓴 도구") {
+            Card(title: L("AI 가 쓴 도구")) {
                 if session.toolUses.isEmpty {
-                    Text("도구 기록이 없어요").foregroundStyle(.secondary)
+                    Text(L("도구 기록이 없어요")).foregroundStyle(.secondary)
                 } else {
                     FlowLayout(spacing: 6) {
                         ForEach(session.toolUses.sorted { $0.value > $1.value }, id: \.key) { name, count in
-                            Chip(text: "\(ToolLabel.korean(name)) \(Fmt.number(count))", symbol: ToolLabel.symbol(name))
+                            Chip(text: "\(ToolLabel.label(name)) \(Fmt.number(count))", symbol: ToolLabel.symbol(name))
                         }
                     }
                 }
             }
-            Card(title: "모델") {
+            Card(title: L("모델")) {
                 Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
                     GridRow {
-                        Text("모델"); Text("입력"); Text("출력"); Text("캐시 읽기"); Text("캐시 쓰기"); Text("비용")
+                        Text(L("모델")); Text(L("입력")); Text(L("출력")); Text(L("캐시 읽기")); Text(L("캐시 쓰기")); Text(L("비용"))
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -272,7 +272,7 @@ struct SessionDetailView: View {
                         GridRow {
                             Text(name).font(.callout.monospaced())
                             if u.unsplitTokens > 0 {
-                                Text("합계 \(Fmt.compact(u.unsplitTokens))").gridCellColumns(4)
+                                Text(L("합계 %@", Fmt.compact(u.unsplitTokens))).gridCellColumns(4)
                             } else {
                                 Text(Fmt.compact(u.inputTokens))
                                 Text(Fmt.compact(u.outputTokens))
@@ -329,14 +329,14 @@ struct TurnView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: prompt.isCommand ? "command" : prompt.isAutomated ? "gearshape" : "person.fill")
-                Text(prompt.isCommand ? "명령" : prompt.isAutomated ? "자동 요청" : "나")
+                Text(prompt.isCommand ? L("명령") : prompt.isAutomated ? L("자동 요청") : L("나"))
                 Text("#\(number)").foregroundStyle(.tertiary)
                 Spacer()
                 Button {
-                    model.copy(prompt.text, message: "요청을 복사했어요")
+                    model.copy(prompt.text, message: L("요청을 복사했어요"))
                 } label: { Image(systemName: "doc.on.doc") }
                     .buttonStyle(.borderless)
-                    .help("요청 복사")
+                    .help(L("요청 복사"))
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
@@ -360,7 +360,7 @@ struct TurnView: View {
                     .buttonStyle(.plain)
                     .help(Fmt.relativePath(path, to: projectPath))
                 }
-                if prompt.files.count > 8 { Chip(text: "외 \(prompt.files.count - 8)개") }
+                if prompt.files.count > 8 { Chip(text: L("외 %@개", String(prompt.files.count - 8))) }
                 LineDelta(added: prompt.linesAdded, removed: prompt.linesRemoved, approximate: true)
             }
         }
@@ -376,7 +376,7 @@ struct TurnView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: "sparkle").foregroundStyle(.secondary)
                     if replyExpanded {
-                        Text("AI 의 마지막 답").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(L("AI 의 마지막 답")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                     } else {
                         Text(RichText.plain(RichText.snippet(reply.plainLine.replacingOccurrences(of: "`", with: ""), around: highlight), highlight: highlight))
                             .lineLimit(1)
@@ -391,13 +391,13 @@ struct TurnView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(replyExpanded ? "접기" : "답변 전체 보기")
+            .help(replyExpanded ? L("접기") : L("답변 전체 보기"))
 
             if replyExpanded {
                 MarkdownText(text: reply, highlight: highlight)
                 HStack {
                     Spacer()
-                    Button("답변 복사") { model.copy(reply, message: "답변을 복사했어요") }
+                    Button(L("답변 복사")) { model.copy(reply, message: L("답변을 복사했어요")) }
                         .controlSize(.small)
                 }
             }

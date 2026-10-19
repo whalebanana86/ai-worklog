@@ -9,12 +9,12 @@ public struct AIConfigItem: Hashable, Sendable, Identifiable {
 
         public var label: String {
             switch self {
-            case .rule: return "규칙"
-            case .skill: return "스킬"
-            case .command: return "명령"
-            case .agent: return "서브에이전트"
-            case .settings: return "훅·권한"
-            case .mcp: return "MCP 서버"
+            case .rule: return L("규칙")
+            case .skill: return L("스킬")
+            case .command: return L("명령")
+            case .agent: return L("서브에이전트")
+            case .settings: return L("훅·권한")
+            case .mcp: return L("MCP 서버")
             }
         }
 
@@ -122,13 +122,13 @@ public enum AIConfigScanner {
             }
         }
         if let item = settingsItem(path: claude + "/settings.json", name: "~/.claude/settings.json") { claudeItems.append(item) }
-        if !claudeItems.isEmpty { scopes.append(AIConfigScope(title: "Claude Code 전역", path: claude, items: claudeItems)) }
+        if !claudeItems.isEmpty { scopes.append(AIConfigScope(title: L("Claude Code 전역"), path: claude, items: claudeItems)) }
 
         let codex = home.appendingPathComponent(".codex").path
         var codexItems: [AIConfigItem] = []
         if let item = markdownItem(kind: .rule, path: codex + "/AGENTS.md", name: "~/.codex/AGENTS.md") { codexItems.append(item) }
         codexItems += skills(in: codex + "/skills", lock: [:])
-        if !codexItems.isEmpty { scopes.append(AIConfigScope(title: "Codex 전역", path: codex, items: codexItems)) }
+        if !codexItems.isEmpty { scopes.append(AIConfigScope(title: L("Codex 전역"), path: codex, items: codexItems)) }
 
         // Claude Code 플러그인
         let installed = claude + "/plugins/installed_plugins.json"
@@ -139,9 +139,9 @@ public enum AIConfigScanner {
                 guard let path = installs.last?["installPath"] as? String else { continue }
                 let name = id.split(separator: "@").first.map(String.init) ?? id
                 let version = installs.last?["version"] as? String
-                let items = skills(in: path + "/skills", lock: [:], origin: "플러그인 \(name)", prefix: name + ":")
+                let items = skills(in: path + "/skills", lock: [:], origin: L("플러그인 %@", name), prefix: name + ":")
                 if !items.isEmpty {
-                    scopes.append(AIConfigScope(title: "플러그인 \(name)" + (version.map { " \($0)" } ?? ""), path: path, items: items))
+                    scopes.append(AIConfigScope(title: L("플러그인 %@", name) + (version.map { " \($0)" } ?? ""), path: path, items: items))
                 }
             }
         }
@@ -182,27 +182,27 @@ public enum AIConfigScanner {
         if let hooks = o["hooks"] as? [String: Any], !hooks.isEmpty {
             let parts = hooks.keys.sorted().map { event -> String in
                 let count = ((hooks[event] as? [[String: Any]]) ?? []).reduce(0) { $0 + ((($1["hooks"] as? [Any]) ?? []).count) }
-                return "`\(event)` \(max(count, 1))개"
+                return L("`%@` %@개", event, String(max(count, 1)))
             }
-            lines.append("- **훅**: " + parts.joined(separator: ", "))
+            lines.append(L("- **훅**: ") + parts.joined(separator: ", "))
         }
         if let perms = o["permissions"] as? [String: Any] {
             let allow = (perms["allow"] as? [Any])?.count ?? 0
             let deny = (perms["deny"] as? [Any])?.count ?? 0
             let ask = (perms["ask"] as? [Any])?.count ?? 0
-            if allow + deny + ask > 0 { lines.append("- **권한 규칙**: 허용 \(allow) · 거부 \(deny) · 물어보기 \(ask)") }
-            if let mode = perms["defaultMode"] as? String { lines.append("- **기본 권한 모드**: `\(mode)`") }
+            if allow + deny + ask > 0 { lines.append(L("- **권한 규칙**: 허용 %@ · 거부 %@ · 물어보기 %@", String(allow), String(deny), String(ask))) }
+            if let mode = perms["defaultMode"] as? String { lines.append(L("- **기본 권한 모드**: `%@`", mode)) }
         }
         if let plugins = o["enabledPlugins"] as? [String: Any], !plugins.isEmpty {
-            lines.append("- **켜 둔 플러그인**: " + plugins.keys.sorted().map { "`\($0)`" }.joined(separator: ", "))
+            lines.append(L("- **켜 둔 플러그인**: ") + plugins.keys.sorted().map { "`\($0)`" }.joined(separator: ", "))
         }
         if let env = o["env"] as? [String: Any], !env.isEmpty {
-            lines.append("- **환경 변수** \(env.count)개 (값은 비밀일 수 있어 숨김)")
+            lines.append(L("- **환경 변수** %@개 (값은 비밀일 수 있어 숨김)", String(env.count)))
         }
-        if o["statusLine"] != nil { lines.append("- **상태 줄** 사용") }
-        if let model = o["model"] as? String { lines.append("- **모델**: `\(model)`") }
+        if o["statusLine"] != nil { lines.append(L("- **상태 줄** 사용")) }
+        if let model = o["model"] as? String { lines.append(L("- **모델**: `%@`", model)) }
         guard !lines.isEmpty else { return nil }
-        return AIConfigItem(kind: .settings, name: name, summary: "훅·권한·플러그인 설정 요약",
+        return AIConfigItem(kind: .settings, name: name, summary: L("훅·권한·플러그인 설정 요약"),
                             path: path, body: lines.joined(separator: "\n"), modified: modified(path))
     }
 
@@ -212,12 +212,12 @@ public enum AIConfigScanner {
               let servers = o["mcpServers"] as? [String: [String: Any]], !servers.isEmpty else { return nil }
         let lines = servers.keys.sorted().map { key -> String in
             let s = servers[key] ?? [:]
-            if let url = s["url"] as? String, let host = URL(string: url)?.host { return "- **\(key)**: 원격 (\(host))" }
+            if let url = s["url"] as? String, let host = URL(string: url)?.host { return L("- **%@**: 원격 (%@)", key, host) }
             let command = ((s["command"] as? String).map { ($0 as NSString).lastPathComponent }) ?? "?"
-            return "- **\(key)**: `\(command)` 실행"
+            return L("- **%@**: `%@` 실행", key, command)
         }
-        return AIConfigItem(kind: .mcp, name: name, summary: "MCP 서버 \(servers.count)개: " + servers.keys.sorted().joined(separator: ", "),
-                            path: path, body: lines.joined(separator: "\n") + "\n\n(접속 정보·키 같은 값은 숨김)", modified: modified(path))
+        return AIConfigItem(kind: .mcp, name: name, summary: L("MCP 서버 %@개: ", String(servers.count)) + servers.keys.sorted().joined(separator: ", "),
+                            path: path, body: lines.joined(separator: "\n") + L("\n\n(접속 정보·키 같은 값은 숨김)"), modified: modified(path))
     }
 
     /// `npx skills` 가 남기는 skills-lock.json: 스킬 이름 → 받아 온 곳.
@@ -234,7 +234,7 @@ public enum AIConfigScanner {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), !isDir.boolValue,
               let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
-        return text.count > maxBody ? String(text.prefix(maxBody)) + "\n\n…(길어서 여기까지만)" : text
+        return text.count > maxBody ? String(text.prefix(maxBody)) + L("\n\n…(길어서 여기까지만)") : text
     }
 
     private static func modified(_ path: String) -> Date {

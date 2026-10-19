@@ -1,6 +1,17 @@
 # AI 작업일지
 
+**한국어** · [English](README.en.md)
+
+<p align="center">
+  <img src="docs/demo-ko.gif" width="900" alt="20초 시연: 한눈에 보기 → 기간 바꾸기 → 프로젝트의 AI 날짜별 요약 → 대화 → 스킬·규칙 → 검색">
+  <br><sub>20초 시연 (<a href="docs/demo-ko.mp4">MP4 로 보기</a>) · 지어낸 예시 기록으로 찍었어요</sub>
+</p>
+
 내 맥에서 AI(Claude Code, Codex, LM Studio)와 함께 한 일을 **날짜별 일기장**처럼 모아 보여 주는 맥 앱이에요.
+
+<p align="center">
+  <a href="https://github.com/whalebanana86/ai-worklog/releases/latest"><b>⬇︎ 내려받기 (macOS 14+, Apple 실리콘·인텔)</b></a>
+</p>
 
 ## 이 앱은 뭐예요?
 
@@ -31,13 +42,24 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 
 ## 설치하는 방법
 
-### 준비물
+### 가장 쉬운 방법: 내려받기
+
+1. [Releases 페이지](https://github.com/whalebanana86/ai-worklog/releases/latest)에서 `AI-Worklog-…-macOS.dmg` 를 내려받아요.
+2. 내려받은 파일을 열고, **AI 작업일지** 아이콘을 옆의 **Applications(응용 프로그램)** 폴더로 끌어다 놓아요.
+3. 응용 프로그램 폴더에서 앱을 열어요.
+   - "확인할 수 없는 개발자" 같은 창이 뜨면 **시스템 설정 → 개인정보 보호 및 보안** 맨 아래의 **그래도 열기**를 눌러요. (Apple 공증을 받기 전 버전이라 처음 한 번만 그래요. 공증 받은 버전이면 바로 열려요.)
+   - 터미널이 익숙하면 `xattr -dr com.apple.quarantine "/Applications/AI 작업일지.app"` 한 줄로도 돼요.
+4. 처음 열면 지금까지의 AI 기록을 한 번 다 읽어요(조금 걸려요). 지난 날짜 AI 요약을 한꺼번에 만들려면 **설정(⌘,) → 지금 모두 만들기**를 눌러요.
+
+### 코드로 직접 만들어 설치하기
+
+#### 준비물
 
 - 맥 컴퓨터 (macOS 14 Sonoma 이상)
 - Xcode 또는 개발 도구 — 없으면 터미널에서 `xcode-select --install` 을 한 번 실행해요
 - (있으면 좋아요) Claude Code, Codex, LM Studio 중 하나 — 있어야 AI 가 "이날 한 일"을 요약해 줘요. 없어도 앱은 돼요
 
-### 따라 하기
+#### 따라 하기
 
 1. **터미널을 열어요.** 터미널은 글자로 컴퓨터에게 명령하는 창이에요. `⌘ + 스페이스`를 누르고 "터미널"이라고 쓴 뒤 엔터를 쳐요.
 2. **이 앱의 코드를 내려받아요.** 아래 줄을 복사해서 터미널에 붙여 넣고 엔터를 쳐요.
@@ -59,8 +81,8 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 
 ### 새 버전으로 바꾸기 · 지우기
 
-- 새 버전: `ai-worklog` 폴더에서 `git pull` 한 다음 `scripts/build_app.sh --install` 을 다시 해요. 모아 둔 기록과 요약은 그대로 남아요.
-- 지우기: `~/Applications/AI 작업일지.app` 을 휴지통에 넣어요. 모아 둔 기록까지 지우려면 `~/Library/Application Support/AIWorkLog` 폴더도 지워요.
+- 새 버전: 내려받아 쓰면 새 DMG 로 앱을 바꿔 끼워요. 코드로 설치했으면 `ai-worklog` 폴더에서 `git pull` 한 다음 `scripts/build_app.sh --install` 을 다시 해요. 모아 둔 기록과 요약은 그대로 남아요.
+- 지우기: 앱(`AI 작업일지.app`)을 휴지통에 넣어요. 모아 둔 기록까지 지우려면 `~/Library/Application Support/AIWorkLog` 폴더도 지워요.
 
 ## 쓰는 방법
 
@@ -109,6 +131,7 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 - 오른쪽 위 **AI 요약** 메뉴에서 요약해 줄 AI 를 고르거나 끌 수 있어요. "자동"은 내가 요즘 가장 많이 쓴 AI 를 골라요.
 - **스킬·규칙** 화면에서는 AI 에게 미리 가르쳐 둔 규칙 파일과 스킬, 많이 쓴 순서를 볼 수 있어요.
 - 어두운 화면(다크 모드)도 돼요. 맥 설정을 따라가요.
+- 화면 언어를 **한국어 · English · 日本語** 중에서 고를 수 있어요 (설정 → 언어). 새로 만드는 AI 요약도 그 언어로 써요.
 - 단축키: `⌘1`~`⌘4` 화면 바꾸기, `⌘R` 새로 고침, `⌘E` 보고서, `⌘,` 설정, `⌘[` 뒤로 가기
 
 <p>
@@ -122,6 +145,7 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 
 | 설정 | 하는 일 | 설치 옵션으로는 |
 |---|---|---|
+| 언어 | 한국어 / English / 日本語. 바로 바뀌어요 | — |
 | 요약에 쓸 AI | 자동 / Claude Code / Codex / LM Studio / 끄기 | — |
 | 지난 날짜 요약 · **지금 모두 만들기** | 아직 요약이 없는 지난 날을 한꺼번에 요약해 저장해요. 중간에 멈출 수 있어요 | `--install` (빼려면 `--no-summary`) |
 | 자동 보관 | 앱을 열지 않아도 6시간마다 기록을 모아요. Claude Code 가 지우기 전에 옮겨 담아요 | `--auto-sync` / `--remove-auto-sync` |
@@ -251,14 +275,32 @@ scripts/screenshot.sh /tmp/a.png --screen skills --period all   # 앱 창만 캡
 앱 실행 옵션(화면 확인용): `--screen timeline|prompts|skills|project=<경로>`, `--period today|week|month|quarter|all`,
 `--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`, `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
 `--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다),
-`--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭), `--tools codex,lmStudio`(도구 거르기).
+`--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭), `--tools codex,lmStudio`(도구 거르기),
+`--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기).
 
-README 그림 다시 찍기 (창 크기는 화면에 맞게):
+README 그림·시연 영상 다시 만들기 (지어낸 기록으로만 찍는다):
 
 ```bash
-scripts/build_app.sh
-scripts/screenshot.sh docs/screenshots/project.png --demo --screen "project=$HOME/Projects/todo-app" --period month --frame 60,0,1400,940
+scripts/make_screenshots.sh ko        # docs/screenshots/*.png  (en → docs/screenshots/en/)
+scripts/make_demo_video.sh ko         # docs/demo-ko.gif·mp4 (앱 창만 ScreenCaptureKit 으로 녹화, ffmpeg 필요)
 ```
+
+화면 글자 번역: 한국어 원문을 그대로 열쇠로 써서 `L("요청 %@개", n)` 처럼 부르고, 영어·일본어는 `Sources/WorkLogCore/Translations.swift` 에 있다.
+새 글을 넣고 번역을 빠뜨리면 `swift test` 의 `testEveryScreenTextHasTranslations` 가 알려 준다.
+
+#### 배포 (GitHub Releases)
+
+`v1.2.3` 같은 태그를 올리면 GitHub Actions(`.github/workflows/release.yml`)가 Apple 실리콘·인텔 겸용 앱을 만들어 DMG·zip 으로 Releases 에 올린다.
+로컬에서는 `scripts/package_release.sh 1.2.3` → `build/release/`.
+
+서명·공증: 저장소 **Settings → Secrets and variables → Actions** 에 아래 값을 넣으면 Developer ID 로 서명하고 Apple 공증까지 받는다. 없으면 임시 서명으로 올린다.
+
+| Secret | 내용 |
+|---|---|
+| `MACOS_CERT_P12` | Developer ID Application 인증서(.p12)를 `base64 -i cert.p12` 로 바꾼 글 |
+| `MACOS_CERT_PASSWORD` | 그 .p12 의 암호 |
+| `MACOS_SIGN_IDENTITY` | 예) `Developer ID Application: Your Name (TEAMID)` |
+| `APPLE_ID` · `APPLE_TEAM_ID` · `APPLE_APP_PASSWORD` | 공증용 Apple ID, 팀 ID, 앱 암호(appleid.apple.com 에서 만든 것) |
 
 구성:
 - `Sources/WorkLogCore` — 기록 읽기(`ClaudeCodeSource`, `CodexSource`, `LMStudioSource`), 보관함(`WorkLogStore`), 설정 찾기(`AIConfig`), AI 날짜별 요약(`DaySummarizer`), 통계·보고서

@@ -6,9 +6,12 @@ guard CommandLine.arguments.count > 1, let pid = Int(CommandLine.arguments[1]) e
 let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
 var windows = list.filter { ($0[kCGWindowOwnerPID as String] as? Int) == pid && ($0[kCGWindowLayer as String] as? Int) == 0 }
 // 제목을 주면 그 글자가 들어간 창만 (설정 창처럼 가장 크지 않은 창을 찍을 때).
+// 앞에 있지 않은 창은 "화면에 있음"으로 잡히지 않을 때가 있어 모든 창에서 찾는다.
 if CommandLine.arguments.count > 2 {
     let title = CommandLine.arguments[2]
-    windows = windows.filter { ($0[kCGWindowName as String] as? String)?.contains(title) == true }
+    let all = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] ?? []
+    windows = all.filter { ($0[kCGWindowOwnerPID as String] as? Int) == pid && ($0[kCGWindowLayer as String] as? Int) == 0
+        && ($0[kCGWindowName as String] as? String)?.contains(title) == true }
 }
 func area(_ w: [String: Any]) -> Double {
     let r = w[kCGWindowBounds as String] as? [String: Double] ?? [:]

@@ -71,9 +71,9 @@ public struct SummaryEngine: Hashable, Sendable, Identifiable {
     /// 요약 재료가 어디로 가는지 (설명용).
     public var destination: String {
         switch kind {
-        case .claudeCode: return "Anthropic 서버(Claude Code)"
-        case .codex: return "OpenAI 서버(Codex)"
-        case .lmStudio: return "내 맥의 LM Studio" + (model.map { "(\($0))" } ?? "")
+        case .claudeCode: return L("Anthropic 서버(Claude Code)")
+        case .codex: return L("OpenAI 서버(Codex)")
+        case .lmStudio: return L("내 맥의 LM Studio") + (model.map { "(\($0))" } ?? "")
         }
     }
 }
@@ -96,7 +96,19 @@ public enum DaySummarizer {
     /// 재료 전체 글자 수 상한. 넘으면 요청·결과를 더 짧게 자른다.
     static let materialBudget = 9_000
 
-    static let systemPrompt = "너는 개발 작업 기록을 읽고 그날 한 일을 짧게 정리하는 도우미다. 도구를 쓰거나 파일을 읽지 말고, 요청받은 형식의 요약만 한국어로 출력한다."
+    static func systemPrompt(_ language: AppLanguage) -> String {
+        let name = language == .ko ? "한국어" : language == .en ? "영어(English)" : "일본어(日本語)"
+        return "너는 개발 작업 기록을 읽고 그날 한 일을 짧게 정리하는 도우미다. 도구를 쓰거나 파일을 읽지 말고, 요청받은 형식의 요약만 \(name)로 출력한다."
+    }
+
+    /// 화면 언어가 한국어가 아니면 지시문 끝에 붙여 그 언어로 쓰게 한다. 형식(첫 줄 + "- " 목록)은 그대로.
+    static func languageRule(_ language: AppLanguage) -> String {
+        switch language {
+        case .ko: return ""
+        case .en: return "\n\n출력 언어: 영어(English). 위 형식은 그대로 지키되, 각 줄은 \"Added …\", \"Fixed …\" 처럼 짧은 영어 구로 쓰고, 남은 일은 \"- To do: …\" 로 쓴다."
+        case .ja: return "\n\n出力言語: 日本語。上の形式はそのまま守り、各行は「〜を追加」「〜を修正」のように体言止めで短く書き、残りの作業は「- 残り: …」と書く。"
+        }
+    }
 
     static let instructions = """
         위는 한 사람이 AI 코딩 도구와 함께 이날 이 프로젝트에서 한 작업 기록이다. (요청 = 사람이 AI 에게 시킨 일, 결과 = AI 의 마지막 답)
@@ -281,7 +293,7 @@ public enum DaySummarizer {
                 continue
             }
             t = t.trimmingCharacters(in: CharacterSet(charactersIn: "#").union(.whitespaces))
-            if let label = t.range(of: #"^(요약|한 줄 요약|한줄 요약|이날 한 일|오늘 한 일)\s*[:：]\s*"#, options: .regularExpression) {
+            if let label = t.range(of: #"^(요약|한 줄 요약|한줄 요약|이날 한 일|오늘 한 일|Summary|要約)\s*[:：]\s*"#, options: [.regularExpression, .caseInsensitive]) {
                 t.removeSubrange(label)
             }
             guard !t.isEmpty else { continue }
@@ -297,27 +309,29 @@ public enum DaySummarizer {
 
     /// 재료를 AI 에게 보내 요약을 받아 온다. `previous` 를 주면 그 요약에 `material`(그 뒤 기록)을 더해 이어 쓴다.
     public static func summarize(_ material: String, with engine: SummaryEngine, previous: DaySummary? = nil,
+                                 language: AppLanguage = Loc.language,
                                  timeout: TimeInterval = 150) async throws -> (headline: String, points: [String]) {
         let prompt: String
         if let previous {
             let before = ([previous.headline] + previous.points.map { "- \($0)" }).joined(separator: "\n")
-            prompt = "[지금까지 요약]\n\(before)\n\n[그 뒤 새 기록]\n\(material)\n---\n\(updateInstructions)"
+            prompt = "[지금까지 요약]\n\(before)\n\n[그 뒤 새 기록]\n\(material)\n---\n\(updateInstructions)" + languageRule(language)
         } else {
-            prompt = material + "\n---\n" + instructions
+            prompt = material + "\n---\n" + instructions + languageRule(language)
         }
+        let system = systemPrompt(language)
         let raw: String
         switch engine.kind {
-        case .claudeCode: raw = try await runClaude(engine, prompt: prompt, timeout: timeout)
+        case .claudeCode: raw = try await runClaude(engine, prompt: prompt, system: system, timeout: timeout)
         case .codex: raw = try await runCodex(engine, prompt: prompt, timeout: timeout)
-        case .lmStudio: raw = try await runLMStudio(engine, prompt: prompt, timeout: timeout)
+        case .lmStudio: raw = try await runLMStudio(engine, prompt: prompt, system: system, timeout: timeout)
         }
         guard let parsed = parse(raw) else {
-            throw SummaryError(raw.isEmpty ? "\(engine.displayName) 가 빈 답을 보냈어요" : "요약 형식을 알아보지 못했어요")
+            throw SummaryError(raw.isEmpty ? L("%@ 가 빈 답을 보냈어요", engine.displayName) : L("요약 형식을 알아보지 못했어요"))
         }
         return parsed
     }
 
-    private static func runClaude(_ engine: SummaryEngine, prompt: String, timeout: TimeInterval) async throws -> String {
+    private static func runClaude(_ engine: SummaryEngine, prompt: String, system: String, timeout: TimeInterval) async throws -> String {
         let work = try workDirectory()
         let input = work.appendingPathComponent("\(UUID().uuidString).txt")
         try prompt.write(to: input, atomically: true, encoding: .utf8)
@@ -329,7 +343,7 @@ public enum DaySummarizer {
             // 도구·MCP 서버·스킬·훅을 꺼서 빨리 뜨고 아무것도 건드리지 않게.
             "--tools", "", "--strict-mcp-config", "--disable-slash-commands",
             "--settings", #"{"disableAllHooks":true}"#,
-            "--system-prompt", systemPrompt,
+            "--system-prompt", system,
         ], input: input, cwd: work, environment: environment(for: engine), timeout: timeout)
         try result.check(engine)
         return result.output
@@ -355,14 +369,14 @@ public enum DaySummarizer {
         return (try? String(contentsOf: output, encoding: .utf8)) ?? result.output
     }
 
-    private static func runLMStudio(_ engine: SummaryEngine, prompt: String, timeout: TimeInterval) async throws -> String {
-        guard let url = URL(string: engine.location + "/v1/chat/completions") else { throw SummaryError("LM Studio 주소가 이상해요") }
+    private static func runLMStudio(_ engine: SummaryEngine, prompt: String, system: String, timeout: TimeInterval) async throws -> String {
+        guard let url = URL(string: engine.location + "/v1/chat/completions") else { throw SummaryError(L("LM Studio 주소가 이상해요")) }
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body: [String: Any] = [
             "model": engine.model ?? "",
-            "messages": [["role": "system", "content": systemPrompt], ["role": "user", "content": prompt]],
+            "messages": [["role": "system", "content": system], ["role": "user", "content": prompt]],
             "temperature": 0.2,
             "max_tokens": 1_200,
             "stream": false,
@@ -372,9 +386,9 @@ public enum DaySummarizer {
         do {
             (data, _) = try await URLSession.shared.data(for: request)
         } catch {
-            throw SummaryError("LM Studio 서버에 닿지 않아요. LM Studio 에서 서버를 켜 주세요")
+            throw SummaryError(L("LM Studio 서버에 닿지 않아요. LM Studio 에서 서버를 켜 주세요"))
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw SummaryError("LM Studio 답을 읽지 못했어요") }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw SummaryError(L("LM Studio 답을 읽지 못했어요")) }
         if let error = json["error"] as? [String: Any], let message = error["message"] as? String { throw SummaryError("LM Studio: \(message.clipped(120))") }
         if let message = json["error"] as? String { throw SummaryError("LM Studio: \(message.clipped(120))") }
         let choice = (json["choices"] as? [[String: Any]])?.first
@@ -492,7 +506,7 @@ public enum DaySummarizer {
         var timedOut: Bool
 
         func check(_ engine: SummaryEngine) throws {
-            if timedOut { throw SummaryError("\(engine.displayName) 가 너무 오래 걸려서 멈췄어요") }
+            if timedOut { throw SummaryError(L("%@ 가 너무 오래 걸려서 멈췄어요", engine.displayName)) }
             guard status == 0 else {
                 let detail = (error + "\n" + output).split(whereSeparator: \.isNewline)
                     .map { $0.trimmingCharacters(in: .whitespaces) }.last { !$0.isEmpty } ?? "종료 코드 \(status)"
@@ -535,7 +549,7 @@ public enum DaySummarizer {
             } catch {
                 out.fileHandleForReading.readabilityHandler = nil
                 err.fileHandleForReading.readabilityHandler = nil
-                continuation.resume(throwing: SummaryError("\((executable as NSString).lastPathComponent) 를 실행하지 못했어요"))
+                continuation.resume(throwing: SummaryError(L("%@ 를 실행하지 못했어요", (executable as NSString).lastPathComponent)))
                 return
             }
             let pid = process.processIdentifier

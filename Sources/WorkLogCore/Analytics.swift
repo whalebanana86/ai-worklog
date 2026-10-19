@@ -244,12 +244,12 @@ extension WorkLogAnalytics {
     /// 한 프로젝트에 적용되는 AI 설정: 그 폴더 것 + 상위 폴더 것 (가까운 순).
     public static func configScopes(for path: String, configs: [String: [AIConfigItem]]) -> [AIConfigScope] {
         var scopes: [AIConfigScope] = []
-        if let own = configs[path] { scopes.append(AIConfigScope(title: "이 프로젝트", path: path, items: own)) }
+        if let own = configs[path] { scopes.append(AIConfigScope(title: L("이 프로젝트"), path: path, items: own)) }
         var dir = (path as NSString).deletingLastPathComponent
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         while dir.hasPrefix(home + "/") {
             if let items = configs[dir] {
-                scopes.append(AIConfigScope(title: "상위 폴더 · \((dir as NSString).lastPathComponent)", path: dir, items: items))
+                scopes.append(AIConfigScope(title: L("상위 폴더 · %@", (dir as NSString).lastPathComponent), path: dir, items: items))
             }
             dir = (dir as NSString).deletingLastPathComponent
         }

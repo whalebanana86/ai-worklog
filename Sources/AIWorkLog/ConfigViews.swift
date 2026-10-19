@@ -11,20 +11,20 @@ struct SkillsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("스킬·규칙").font(.system(size: 28, weight: .bold))
+                    Text(L("스킬·규칙")).font(.system(size: 28, weight: .bold))
                     Text(summary(scopes: scopes, usage: usage)).font(.title3).foregroundStyle(.secondary)
                 }
 
-                Card(title: "많이 쓴 스킬·명령", subtitle: "\(model.period.longLabel) · AI 가 부른 스킬과 내가 /이름 으로 부른 명령") {
+                Card(title: L("많이 쓴 스킬·명령"), subtitle: L("%@ · AI 가 부른 스킬과 내가 /이름 으로 부른 명령", model.period.longLabel)) {
                     if usage.isEmpty {
-                        Text("이 기간에는 쓴 스킬·명령이 없어요").foregroundStyle(.secondary)
+                        Text(L("이 기간에는 쓴 스킬·명령이 없어요")).foregroundStyle(.secondary)
                     } else {
                         SkillUsageList(usage: Array(usage.prefix(12)), definitions: definitions)
                     }
                 }
 
                 if !scopes.isEmpty {
-                    Card(title: "프로젝트별 설정", subtitle: "프로젝트 폴더에 만들어 둔 규칙·스킬·명령·서브에이전트·훅") {
+                    Card(title: L("프로젝트별 설정"), subtitle: L("프로젝트 폴더에 만들어 둔 규칙·스킬·명령·서브에이전트·훅")) {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(scopes.enumerated()), id: \.element.id) { index, scope in
                                 ScopeSection(scope: scope, showProjectLink: true)
@@ -35,7 +35,7 @@ struct SkillsView: View {
                 }
 
                 if !model.snapshot.globalConfigs.isEmpty {
-                    Card(title: "모든 프로젝트에 적용되는 설정", subtitle: "~/.claude, ~/.codex, 설치한 플러그인") {
+                    Card(title: L("모든 프로젝트에 적용되는 설정"), subtitle: L("~/.claude, ~/.codex, 설치한 플러그인")) {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(model.snapshot.globalConfigs.enumerated()), id: \.element.id) { index, scope in
                                 ScopeSection(scope: scope, showProjectLink: false)
@@ -46,8 +46,8 @@ struct SkillsView: View {
                 }
 
                 if model.snapshot.configs.isEmpty && model.snapshot.globalConfigs.isEmpty {
-                    EmptyCard(title: model.snapshot.isSynced ? "만들어 둔 스킬·규칙이 없어요" : "설정을 찾는 중이에요",
-                              message: "CLAUDE.md, AGENTS.md, .claude/skills 같은 파일을 찾아 보여 줘요.", symbol: "wand.and.stars")
+                    EmptyCard(title: model.snapshot.isSynced ? L("만들어 둔 스킬·규칙이 없어요") : L("설정을 찾는 중이에요"),
+                              message: L("CLAUDE.md, AGENTS.md, .claude/skills 같은 파일을 찾아 보여 줘요."), symbol: "wand.and.stars")
                 }
             }
             .padding(24)
@@ -79,13 +79,13 @@ struct SkillsView: View {
         let items = scopes.flatMap(\.items)
         let count = { (kind: AIConfigItem.Kind) in items.filter { $0.kind == kind }.count }
         var parts: [String] = []
-        if count(.rule) > 0 { parts.append("규칙 \(count(.rule))개") }
-        if count(.skill) > 0 { parts.append("스킬 \(count(.skill))개") }
-        if count(.command) > 0 { parts.append("명령 \(count(.command))개") }
-        if count(.agent) > 0 { parts.append("서브에이전트 \(count(.agent))개") }
-        let made = parts.isEmpty ? "프로젝트에 만들어 둔 설정은 없고" : "폴더 \(scopes.count)곳에 \(parts.joined(separator: ", "))를 만들어 두었고"
+        if count(.rule) > 0 { parts.append(L("규칙 %@개", String(count(.rule)))) }
+        if count(.skill) > 0 { parts.append(L("스킬 %@개", String(count(.skill)))) }
+        if count(.command) > 0 { parts.append(L("명령 %@개", String(count(.command)))) }
+        if count(.agent) > 0 { parts.append(L("서브에이전트 %@개", String(count(.agent)))) }
+        let made = parts.isEmpty ? L("프로젝트에 만들어 둔 설정은 없고") : L("폴더 %@곳에 %@를 만들어 두었고", String(scopes.count), parts.joined(separator: ", "))
         let used = usage.reduce(0) { $0 + $1.count }
-        return "\(made), \(model.period.longLabel) 동안 스킬·명령을 \(used)번 썼어요."
+        return L("%@, %@ 동안 스킬·명령을 %@번 썼어요.", made, model.period.longLabel, String(used))
     }
 }
 
@@ -105,10 +105,10 @@ struct SkillUsageList: View {
                         if let def = definitions[row.name] {
                             Text(def.summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         } else {
-                            Text("기본 제공 스킬").font(.caption).foregroundStyle(.tertiary)
+                            Text(L("기본 제공 스킬")).font(.caption).foregroundStyle(.tertiary)
                         }
                         Spacer()
-                        Text("\(row.count)번").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Text(L("%@번", String(row.count))).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -120,7 +120,7 @@ struct SkillUsageList: View {
                     .frame(height: 5)
                     Text(row.projects.joined(separator: " · ")).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
                 }
-                .help(definitions[row.name].map { Fmt.path($0.path) } ?? "Claude Code·플러그인에 들어 있는 스킬")
+                .help(definitions[row.name].map { Fmt.path($0.path) } ?? L("Claude Code·플러그인에 들어 있는 스킬"))
             }
         }
     }
@@ -189,7 +189,7 @@ struct ConfigItemRow: View {
                     Text(item.summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 8)
                     if let origin = item.origin { Chip(text: origin, symbol: "shippingbox") }
-                    if item.extraFiles > 0 { Text("참고 파일 \(item.extraFiles)").font(.caption2).foregroundStyle(.tertiary) }
+                    if item.extraFiles > 0 { Text(L("참고 파일 %@", String(item.extraFiles))).font(.caption2).foregroundStyle(.tertiary) }
                     Text(Fmt.relativeDay(item.modified)).font(.caption2).foregroundStyle(.tertiary)
                 }
                 .contentShape(Rectangle())
@@ -203,10 +203,10 @@ struct ConfigItemRow: View {
                         .font(.callout)
                     HStack(spacing: 8) {
                         if item.body.count > Self.previewLimit {
-                            Button("전체 보기") { showFull = true }
+                            Button(L("전체 보기")) { showFull = true }
                         }
-                        Button("Finder 에서 보기") { model.reveal(item.path) }
-                        Button("경로 복사") { model.copy(item.path, message: "경로를 복사했어요") }
+                        Button(L("Finder 에서 보기")) { model.reveal(item.path) }
+                        Button(L("경로 복사")) { model.copy(item.path, message: L("경로를 복사했어요")) }
                     }
                     .controlSize(.small)
                 }
@@ -237,7 +237,7 @@ struct ConfigDocumentSheet: View {
                     Text(Fmt.path(item.path)).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("닫기") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("닫기")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
             ScrollView {
                 MarkdownText(text: item.body, lazy: true)
@@ -258,13 +258,13 @@ struct ProjectConfigCard: View {
         let scopes = WorkLogAnalytics.configScopes(for: project.path, configs: model.snapshot.configs)
         let used = project.skillsUsed.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
         if !scopes.isEmpty || !used.isEmpty {
-            Card(title: "AI 규칙·스킬", subtitle: "이 프로젝트에서 AI 가 따르는 규칙과 쓸 수 있는 스킬·명령") {
+            Card(title: L("AI 규칙·스킬"), subtitle: L("이 프로젝트에서 AI 가 따르는 규칙과 쓸 수 있는 스킬·명령")) {
                 if !used.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("이 프로젝트에서 쓴 스킬·명령").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Text(L("이 프로젝트에서 쓴 스킬·명령")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         FlowLayout(spacing: 6) {
                             ForEach(used, id: \.key) { name, count in
-                                Chip(text: "\(name) \(count)번", symbol: "wand.and.stars")
+                                Chip(text: L("%@ %@번", name, String(count)), symbol: "wand.and.stars")
                             }
                         }
                     }

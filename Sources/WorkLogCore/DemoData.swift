@@ -36,7 +36,7 @@ public enum DemoData {
         var points: [String]
     }
 
-    static let works: [Work] = [
+    static let worksKO: [Work] = [
         Work(project: "todo-app", tool: .claudeCode, title: "마감 알림과 아이콘 배지", daysAgo: 0, hour: 10, gaps: [0, 9, 10, 10], asks: [
             Ask(text: "마감 시간 30분 전에 알림이 오게 해 줘",
                 reply: "할 일을 저장할 때 마감 30분 전으로 로컬 알림을 예약하는 NotificationScheduler 를 만들었어요. 마감을 바꾸면 예약도 다시 잡아요.",
@@ -199,6 +199,173 @@ public enum DemoData {
              points: ["시안 3개를 만들어 하늘 그림형으로 정함", "작은·중간 크기 위젯을 만듦"]),
     ]
 
+    /// 한국어가 아닌 화면에서 쓰는 영어 시연 기록. 날짜·간격·고친 파일은 한국어판과 같다.
+    static let worksEN: [Work] = [
+        Work(project: "todo-app", tool: .claudeCode, title: "Due-date reminders and app badge", daysAgo: 0, hour: 10, gaps: [0, 9, 10, 10], asks: [
+            Ask(text: "Send a reminder 30 minutes before a to-do is due",
+                reply: "Added a NotificationScheduler that books a local notification 30 minutes before the due time whenever a to-do is saved. Changing the due date reschedules it.",
+                files: ["Sources/Notifications/NotificationScheduler.swift", "Sources/Models/TodoStore.swift"], added: 86, removed: 4),
+            Ask(text: "If notifications are denied, show a hint that opens Settings",
+                reply: "When permission is off, a banner appears above the list; tapping it opens the Notifications page in System Settings.",
+                files: ["Sources/Views/PermissionBanner.swift"], added: 42),
+            Ask(text: "Add tests for the reminders too",
+                reply: "Added 6 tests for reminder timing, skipping overdue to-dos and rescheduling on due-date changes. All pass.",
+                files: ["Tests/NotificationSchedulerTests.swift"], added: 71),
+            Ask(text: "Show today's remaining to-dos on the app icon badge",
+                reply: "The app icon badge now shows how many to-dos are due today, and disappears when they're all done.",
+                files: ["Sources/App/TodoApp.swift", "Sources/Models/TodoStore.swift"], added: 23, removed: 2),
+        ], model: "claude-opus-5-5", tokens: 1_840_000, cost: 3.12, skills: ["write-tests": 1],
+             headline: "Added due-date reminders and a permission hint",
+             points: ["Local reminder 30 min before due, rescheduled when the due date changes", "Banner that opens Settings when notifications are off",
+                      "6 tests for reminder timing, all passing"]),
+        Work(project: "my-blog", tool: .codex, title: "Post search", daysAgo: 1, hour: 20, gaps: [0, 10, 8], asks: [
+            Ask(text: "Let me search posts by title and body",
+                reply: "A search index (search-index.json) is built at build time, and the search box at the top finds titles and bodies instantly.",
+                files: ["scripts/build-search-index.ts", "components/SearchBox.tsx"], added: 132, removed: 6),
+            Ask(text: "Highlight the matched words in the results",
+                reply: "Matches are wrapped in <mark>, and bodies show 40 characters around the match.",
+                files: ["components/SearchResult.tsx"], added: 48, removed: 9),
+            Ask(text: "Can it handle typos?",
+                reply: "Titles now match with one typo allowed. Doing the same for bodies tripled the index size, so it's titles only.",
+                files: ["scripts/build-search-index.ts"], added: 27, removed: 3),
+        ], model: "gpt-5.5-codex", tokens: 920_000,
+             headline: "Added title and body search with typo tolerance",
+             points: ["Search index built at build time, instant results from the top bar", "Matched words highlighted; bodies show 40 chars around the match",
+                      "Titles tolerate one typo (bodies skipped to keep the index small)"]),
+        Work(project: "todo-app", tool: .claudeCode, title: "Dark mode and a Home Screen widget", daysAgo: 2, hour: 14, gaps: [0, 10, 10], asks: [
+            Ask(text: "Text is hard to read in dark mode, fix the colors",
+                reply: "Switched to semantic colors (background, text, accent), so contrast is at least 4.5:1 in both light and dark.",
+                files: ["Resources/Colors.xcassets", "Sources/Views/TodoRow.swift"], added: 58, removed: 31),
+            Ask(text: "Make a Home Screen widget showing three of today's to-dos",
+                reply: "Added a widget with three of today's to-dos and the remaining count. The app and widget share storage through an App Group.",
+                files: ["Widget/TodayWidget.swift", "Sources/Models/SharedStore.swift"], added: 164, removed: 12),
+            Ask(text: "Tapping a widget item should open that to-do",
+                reply: "Each widget row links to todoapp://todo/<id>, and the app opens that to-do's detail screen.",
+                files: ["Widget/TodayWidget.swift", "Sources/App/TodoApp.swift"], added: 37, removed: 3),
+        ], model: "claude-opus-5-5", tokens: 2_310_000, cost: 4.05, skills: ["swiftui-review": 1],
+             headline: "Dark mode colors and a today widget",
+             points: ["Semantic colors with 4.5:1+ contrast in both modes", "Home Screen widget showing three of today's to-dos",
+                      "Tapping a widget row opens that to-do"]),
+        Work(project: "weather-widget", tool: .claudeCode, title: "Weather API hookup", daysAgo: 4, hour: 9, gaps: [0, 10, 10, 9], asks: [
+            Ask(text: "Get the current temperature from the forecast API",
+                reply: "Built a WeatherClient that converts coordinates to the forecast grid and picks the temperature and sky closest to now.",
+                files: ["Sources/Weather/WeatherClient.swift", "Sources/Weather/GridConverter.swift"], added: 154),
+            Ask(text: "Use my location, fall back to Seoul if denied",
+                reply: "It asks for location once and falls back to Seoul if denied or unavailable.",
+                files: ["Sources/Weather/LocationProvider.swift"], added: 61),
+            Ask(text: "Move the API key out of the code into a config file",
+                reply: "Moved the key into Secrets.xcconfig, added it to .gitignore, and left a Secrets.example.xcconfig.",
+                files: ["Config/Secrets.example.xcconfig", ".gitignore", "Sources/Weather/WeatherClient.swift"], added: 12, removed: 3),
+            Ask(text: "Refresh every 30 minutes",
+                reply: "The widget timeline refreshes every 30 minutes and caches forecasts for the same hour.",
+                files: ["Widget/WeatherTimeline.swift"], added: 44, removed: 8),
+        ], model: "claude-sonnet-5-5", tokens: 1_120_000, cost: 1.38,
+             headline: "Hooked up the forecast API, location and keys",
+             points: ["Current temperature and sky from the forecast API", "Uses your location, Seoul if permission is off",
+                      "API key moved to a config file and kept out of git", "Refreshes every 30 min with caching"]),
+        Work(project: "my-blog", tool: .codex, title: "RSS and tag pages", daysAgo: 5, hour: 21, gaps: [0, 10, 6], asks: [
+            Ask(text: "Add an RSS feed",
+                reply: "/rss.xml is built from the latest 20 posts, with a feed link in the page head.",
+                files: ["scripts/build-rss.ts", "app/layout.tsx"], added: 66, removed: 1),
+            Ask(text: "And a post list per tag",
+                reply: "Pages at /tags/<tag> are built from each post's tags, and tags under a post link there.",
+                files: ["app/tags/[tag]/page.tsx", "components/TagList.tsx"], added: 88, removed: 4),
+            Ask(text: "Tag pages with spaces give a 404",
+                reply: "The tag was compared while still URL-encoded. It's now decoded with decodeURIComponent first.",
+                files: ["app/tags/[tag]/page.tsx"], added: 3, removed: 2),
+        ], model: "gpt-5.5-codex", tokens: 640_000,
+             headline: "Added an RSS feed and tag pages",
+             points: ["RSS feed from the latest 20 posts", "Post list page for each tag", "Fixed 404 on tags with spaces"]),
+        Work(project: "todo-app", tool: .claudeCode, title: "Starting the to-do app", daysAgo: 8, hour: 13, gaps: [0, 10, 10, 10], asks: [
+            Ask(text: "Scaffold a SwiftUI to-do app: list, add, check off",
+                reply: "Built a list screen backed by SwiftData, an add sheet and check-off. Builds and runs.",
+                files: ["Sources/App/TodoApp.swift", "Sources/Models/Todo.swift", "Sources/Views/TodoList.swift", "Sources/Views/AddTodoSheet.swift"],
+                added: 212),
+            Ask(text: "Let to-dos have a due date",
+                reply: "Added an optional due date, shown as 'Today', 'Tomorrow' or '3 days left'. Overdue ones turn red.",
+                files: ["Sources/Models/Todo.swift", "Sources/Views/TodoRow.swift"], added: 54, removed: 7),
+            Ask(text: "Move finished ones to the bottom and dim them",
+                reply: "Finished to-dos gather under 'Done' at the bottom, dimmed. Unchecking moves them back up.",
+                files: ["Sources/Views/TodoList.swift"], added: 31, removed: 12),
+            Ask(text: "Write this project's rules into CLAUDE.md",
+                reply: "Wrote CLAUDE.md: SwiftUI and SwiftData, plain UI copy, and tests for every feature.",
+                files: ["CLAUDE.md"], added: 28),
+        ], model: "claude-opus-5-5", tokens: 2_760_000, cost: 4.71,
+             headline: "To-do list, add and check-off with due dates",
+             points: ["List, add sheet and check-off backed by SwiftData", "Due dates shown as 'Today' or '3 days left'",
+                      "Finished items dimmed at the bottom", "Project rules written to CLAUDE.md"]),
+        Work(project: "weather-widget", tool: .lmStudio, title: "One-line weather messages", daysAgo: 11, hour: 19, gaps: [0, 5, 6], asks: [
+            Ask(text: "Write one-line widget messages from temperature and chance of rain",
+                reply: "Wrote 15 lines for 5 temperature ranges × 3 rain levels, like 'Grab an umbrella, it's chilly'."),
+            Ask(text: "Too long. Keep them under 20 characters",
+                reply: "Rewrote them under 20 characters, like 'Umbrella! Chilly'."),
+            Ask(text: "Use a different tone in the morning and evening",
+                reply: "Morning lines start with 'Today…', evening lines with 'Tomorrow…'."),
+        ], model: "qwen3.5-9b", tokens: 18_000,
+             headline: "Short weather lines for the widget",
+             points: ["15 short lines for each temperature and rain combination", "Trimmed to 20 characters with morning and evening tones"]),
+        Work(project: "my-blog", tool: .codex, title: "Polishing the reading view", daysAgo: 13, hour: 22, gaps: [0, 9], asks: [
+            Ask(text: "Bigger font and more line spacing in the post view",
+                reply: "Body text is now 18px with 1.8 line height and a 34em measure.",
+                files: ["app/globals.css"], added: 14, removed: 6),
+            Ask(text: "Dark mode too",
+                reply: "It follows the system setting, and a button at the top right lets you pick.",
+                files: ["app/globals.css", "components/ThemeToggle.tsx"], added: 52, removed: 3),
+        ], model: "gpt-5.5-codex", tokens: 310_000,
+             headline: "More readable posts and dark mode",
+             points: ["Body text 18px with 1.8 line height", "Dark mode that follows the system, plus a toggle"]),
+        Work(project: "photo-album", tool: .codex, title: "Photo album first screen", daysAgo: 15, hour: 10, gaps: [0, 10, 10], asks: [
+            Ask(text: "Make an app that shows photos in a folder as a grid by date",
+                reply: "Built a grid grouped by month using each photo's capture date (EXIF), falling back to the file date.",
+                files: ["src/App.tsx", "src/lib/exif.ts", "src/components/PhotoGrid.tsx"], added: 238),
+            Ask(text: "It's slow with lots of photos",
+                reply: "Only visible rows are drawn now, and thumbnails are generated once and cached. First screen takes 0.4s with 3,000 photos.",
+                files: ["src/components/PhotoGrid.tsx", "src/lib/thumbnails.ts"], added: 96, removed: 41),
+            Ask(text: "Tap a photo to view it large and swipe between them",
+                reply: "Tapping a photo shows it full screen; arrow keys and swipes move between photos.",
+                files: ["src/components/Viewer.tsx"], added: 84),
+        ], model: "gpt-5.5-codex", tokens: 1_050_000,
+             headline: "Photo grid by date with a full-screen viewer",
+             points: ["Photos grouped by month using capture dates", "Visible rows only and cached thumbnails: fast with 3,000 photos",
+                      "Full-screen viewer with swipe"]),
+        Work(project: "my-blog", tool: .codex, title: "Starting the blog", daysAgo: 20, hour: 20, gaps: [0, 10, 10], asks: [
+            Ask(text: "Build a Next.js blog that reads Markdown posts",
+                reply: "Built a blog that reads Markdown from the posts folder into a post list and post pages.",
+                files: ["app/page.tsx", "app/posts/[slug]/page.tsx", "lib/posts.ts"], added: 186),
+            Ask(text: "Color the code blocks",
+                reply: "Code blocks get language-aware highlighting and a copy button.",
+                files: ["components/CodeBlock.tsx"], added: 58),
+            Ask(text: "Deploy it to Vercel",
+                reply: "Created a Vercel project that deploys on every push to main. The first deploy is live.",
+                files: ["vercel.json"], added: 9),
+        ], model: "gpt-5.5-codex", tokens: 1_420_000,
+             headline: "Built a Markdown blog and deployed it",
+             points: ["Markdown post list and post pages", "Highlighted code blocks with copy", "Auto-deploy on Vercel"]),
+        Work(project: "photo-album", tool: .codex, title: "Album share links", daysAgo: 22, hour: 15, gaps: [0, 10], asks: [
+            Ask(text: "Let me share an album with a link",
+                reply: "Each album can get a read-only share link that expires in 7 days.",
+                files: ["src/lib/share.ts", "src/components/ShareButton.tsx"], added: 112, removed: 5),
+            Ask(text: "Let me choose when it expires",
+                reply: "You can pick 1 day, 7 days, 30 days or never.",
+                files: ["src/components/ShareButton.tsx"], added: 26, removed: 8),
+        ], model: "gpt-5.5-codex", tokens: 480_000,
+             headline: "Album share links with expiry",
+             points: ["Read-only share link per album", "Expiry of 1, 7 or 30 days, or never"]),
+        Work(project: "weather-widget", tool: .claudeCode, title: "Widget design", daysAgo: 26, hour: 11, gaps: [0, 10], asks: [
+            Ask(text: "Make three design drafts for the weather widget",
+                reply: "Made three SwiftUI previews: big number, sky illustration and hourly bars.",
+                files: ["Widget/Previews/DesignA.swift", "Widget/Previews/DesignB.swift", "Widget/Previews/DesignC.swift"], added: 196),
+            Ask(text: "Let's go with #2. Add a small size too",
+                reply: "Went with the sky illustration and built small and medium sizes.",
+                files: ["Widget/WeatherWidget.swift"], added: 88, removed: 20),
+        ], model: "claude-sonnet-5-5", tokens: 690_000, cost: 0.84, skills: ["swiftui-review": 1],
+             headline: "Picked the sky-illustration widget design",
+             points: ["Three drafts, sky illustration chosen", "Small and medium widget sizes"]),
+    ]
+
+    /// 화면 언어에 맞는 시연 기록 (일본어 화면도 영어판을 쓴다).
+    static var works: [Work] { Loc.language == .ko ? worksKO : worksEN }
+
     // MARK: - 만들기
 
     static func dates(for work: Work, now: Date) -> [Date] {
@@ -259,37 +426,48 @@ public enum DemoData {
         sessions.sort { $0.end > $1.end }
 
         let todo = path("todo-app")
-        let note = MemoryNote(path: "\(todo)/.claude/memory/project.md", name: "project", summary: "todo-app: SwiftUI + SwiftData, 화면 문구는 한국어",
-                              kind: "project", body: "할 일 앱. SwiftUI + SwiftData 로 만들고 화면 문구는 한국어로 쓴다.\n\n- 알림은 마감 30분 전\n- 위젯은 App Group 으로 앱과 저장소를 나눠 쓴다",
+        let ko = Loc.language == .ko
+        let note = MemoryNote(path: "\(todo)/.claude/memory/project.md", name: "project",
+                              summary: ko ? "todo-app: SwiftUI + SwiftData, 화면 문구는 한국어" : "todo-app: SwiftUI + SwiftData, plain UI copy",
+                              kind: "project",
+                              body: ko ? "할 일 앱. SwiftUI + SwiftData 로 만들고 화면 문구는 한국어로 쓴다.\n\n- 알림은 마감 30분 전\n- 위젯은 App Group 으로 앱과 저장소를 나눠 쓴다"
+                                  : "A to-do app built with SwiftUI + SwiftData.\n\n- Reminders fire 30 minutes before due\n- The widget shares storage with the app through an App Group",
                               modified: now.addingTimeInterval(-2 * 86_400))
         var snapshot = WorkLogSnapshot(sessions: sessions, notesByRoot: [todo: [note]], loadedAt: now)
         let ago = now.addingTimeInterval(-5 * 86_400)
+        // 지어낸 설정 파일: (한국어, 영어) 두 가지로 적어 두고 화면 언어에 맞는 쪽을 쓴다.
+        func t(_ korean: String, _ english: String) -> String { ko ? korean : english }
         snapshot.configs = [
             todo: [
-                AIConfigItem(kind: .rule, name: "CLAUDE.md", summary: "SwiftUI·SwiftData, 한국어 화면 문구, 기능마다 테스트",
+                AIConfigItem(kind: .rule, name: "CLAUDE.md", summary: t("SwiftUI·SwiftData, 한국어 화면 문구, 기능마다 테스트", "SwiftUI·SwiftData, plain UI copy, tests for every feature"),
                              path: "\(todo)/CLAUDE.md",
-                             body: "# todo-app 규칙\n\n- SwiftUI + SwiftData 로 만든다\n- 화면 문구는 한국어로 쓴다\n- 기능을 만들면 테스트도 함께 쓴다",
+                             body: t("# todo-app 규칙\n\n- SwiftUI + SwiftData 로 만든다\n- 화면 문구는 한국어로 쓴다\n- 기능을 만들면 테스트도 함께 쓴다",
+                                     "# todo-app rules\n\n- Build with SwiftUI + SwiftData\n- Keep UI copy short and plain\n- Write tests along with every feature"),
                              modified: ago),
-                AIConfigItem(kind: .skill, name: "write-tests", summary: "고친 기능에 맞는 XCTest 를 써 주는 스킬",
+                AIConfigItem(kind: .skill, name: "write-tests", summary: t("고친 기능에 맞는 XCTest 를 써 주는 스킬", "Writes XCTest cases for the code you changed"),
                              path: "\(todo)/.claude/skills/write-tests/SKILL.md",
-                             body: "---\nname: write-tests\ndescription: 고친 기능에 맞는 XCTest 를 써 준다\n---\n\n바뀐 파일을 보고 경계 값과 실패하는 경우부터 테스트를 쓴다.",
+                             body: t("---\nname: write-tests\ndescription: 고친 기능에 맞는 XCTest 를 써 준다\n---\n\n바뀐 파일을 보고 경계 값과 실패하는 경우부터 테스트를 쓴다.",
+                                     "---\nname: write-tests\ndescription: Writes XCTest cases for changed code\n---\n\nLook at the changed files and start with edge cases and failure paths."),
                              modified: ago),
             ],
             path("my-blog"): [
-                AIConfigItem(kind: .rule, name: "AGENTS.md", summary: "Next.js App Router, 글은 posts/ 의 마크다운",
+                AIConfigItem(kind: .rule, name: "AGENTS.md", summary: t("Next.js App Router, 글은 posts/ 의 마크다운", "Next.js App Router, posts are Markdown in posts/"),
                              path: "\(path("my-blog"))/AGENTS.md",
-                             body: "# my-blog\n\n- Next.js App Router 를 쓴다\n- 글은 posts/ 폴더의 마크다운이다", modified: ago),
+                             body: t("# my-blog\n\n- Next.js App Router 를 쓴다\n- 글은 posts/ 폴더의 마크다운이다",
+                                     "# my-blog\n\n- Use the Next.js App Router\n- Posts are Markdown files in posts/"), modified: ago),
             ],
         ]
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         snapshot.globalConfigs = [
-            AIConfigScope(title: "Claude Code 전역", path: "\(home)/.claude", items: [
-                AIConfigItem(kind: .rule, name: "CLAUDE.md", summary: "답은 한국어로, 바꾸기 전에 먼저 설명하기",
-                             path: "\(home)/.claude/CLAUDE.md", body: "- 답은 한국어로 한다\n- 파일을 바꾸기 전에 무엇을 바꿀지 먼저 말한다",
+            AIConfigScope(title: L("Claude Code 전역"), path: "\(home)/.claude", items: [
+                AIConfigItem(kind: .rule, name: "CLAUDE.md", summary: t("답은 한국어로, 바꾸기 전에 먼저 설명하기", "Explain before changing files"),
+                             path: "\(home)/.claude/CLAUDE.md",
+                             body: t("- 답은 한국어로 한다\n- 파일을 바꾸기 전에 무엇을 바꿀지 먼저 말한다", "- Say what you will change before editing files"),
                              modified: ago),
-                AIConfigItem(kind: .skill, name: "swiftui-review", summary: "SwiftUI 화면 코드를 읽고 고칠 점을 짚어 주는 스킬",
+                AIConfigItem(kind: .skill, name: "swiftui-review", summary: t("SwiftUI 화면 코드를 읽고 고칠 점을 짚어 주는 스킬", "Reviews SwiftUI view code and points out fixes"),
                              path: "\(home)/.claude/skills/swiftui-review/SKILL.md",
-                             body: "---\nname: swiftui-review\ndescription: SwiftUI 화면 코드 검토\n---\n\n상태 관리, 접근성, 다크 모드를 차례로 본다.",
+                             body: t("---\nname: swiftui-review\ndescription: SwiftUI 화면 코드 검토\n---\n\n상태 관리, 접근성, 다크 모드를 차례로 본다.",
+                                     "---\nname: swiftui-review\ndescription: Review SwiftUI view code\n---\n\nCheck state handling, accessibility and dark mode in turn."),
                              modified: ago),
             ]),
         ]
