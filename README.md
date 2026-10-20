@@ -188,7 +188,7 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 | 도구 | 부르는 방법 | 재료가 가는 곳 |
 |---|---|---|
 | Claude Code | `claude -p --model haiku` (도구·MCP·스킬·훅 끔, `--no-session-persistence`) | Anthropic 서버 |
-| Codex | `codex exec --ephemeral -s read-only` (생각 짧게) | OpenAI 서버 |
+| Codex | `codex exec --ephemeral -s read-only --ignore-user-config` (셸·앱 연결·플러그인·훅·웹 검색 끔, 내 `config.toml`·MCP 서버는 읽지 않아 Codex 기본 모델로 요약, 생각 짧게) | OpenAI 서버 |
 | LM Studio | 켜 둔 로컬 서버 `/v1/chat/completions` | 내 맥 안 |
 
 - 오른쪽 위 **AI 요약** 메뉴에서 고른다. "자동"은 찾은 도구 중 최근 30일에 가장 많이 쓴 것(클라우드 도구가 없으면 LM Studio). "끄기"를 고르면 예전처럼 요청 목록만 보인다

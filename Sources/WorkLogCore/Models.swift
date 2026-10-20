@@ -17,7 +17,9 @@ public enum AITool: String, Codable, CaseIterable, Sendable, Identifiable {
     }
 
     /// 터미널에서 이 세션을 이어서 여는 명령. 지원하지 않는 도구는 nil.
+    /// 세션 ID·폴더는 기록 파일에서 온 값이라, 붙여 넣었을 때 다른 명령이 돌지 않게 ID 는 꼴을 검사하고 폴더는 따옴표로 감싼다.
     public func resumeCommand(sessionId: String, cwd: String) -> String? {
+        guard Safety.isPlainIdentifier(sessionId), cwd.hasPrefix("/") else { return nil }
         let dir = cwd.replacingOccurrences(of: "'", with: "'\\''")
         switch self {
         case .claudeCode: return "cd '\(dir)' && claude --resume \(sessionId)"

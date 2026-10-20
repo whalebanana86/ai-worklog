@@ -298,7 +298,8 @@ final class AppModel {
         if FileManager.default.fileExists(atPath: path) {
             NSWorkspace.shared.activateFileViewerSelecting([url])
         } else if FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path) {
-            NSWorkspace.shared.open(url.deletingLastPathComponent())
+            // open() 은 그 폴더가 .app 같은 묶음이면 실행해 버린다. Finder 로 보여 주기만 한다.
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.deletingLastPathComponent().path)
             flash(L("파일이 없어서 폴더를 열었어요"))
         } else {
             flash(L("지금은 없는 경로예요"))
@@ -306,7 +307,11 @@ final class AppModel {
     }
 
     func openTerminal(at path: String) {
-        guard FileManager.default.fileExists(atPath: path) else { flash(L("지금은 없는 폴더예요")); return }
+        // 터미널 앱은 폴더가 아닌 파일을 받으면 그 파일을 셸 스크립트로 실행한다. 경로는 기록에서 온 값이라 폴더일 때만 연다.
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            flash(L("지금은 없는 폴더예요")); return
+        }
         let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
         NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
     }

@@ -7,6 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:?버전을 주세요. 예: scripts/package_release.sh 1.0.0}"
+# 파일 이름과 Info.plist 에 그대로 들어가니 숫자.숫자.숫자 꼴만 받는다.
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "버전은 1.2.3 꼴로 주세요: $VERSION" >&2; exit 1; }
 NAME="AI 작업일지"
 APP="build/$NAME.app"
 OUT="build/release"
@@ -33,7 +35,8 @@ if [ -n "${SIGN_IDENTITY:-}" ]; then
   fi
 else
   echo "개발자 인증서가 없어 임시 서명으로 만들어요 (처음 열 때 '그래도 열기'가 필요해요)."
-  codesign --force --sign - "$APP" >/dev/null
+  # 임시 서명이어도 Hardened Runtime 은 켠다 (다른 라이브러리 끼워 넣기·DYLD 환경 변수를 막는다).
+  codesign --force --options runtime --sign - "$APP" >/dev/null
 fi
 
 rm -rf "$OUT" build/dmg

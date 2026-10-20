@@ -356,7 +356,8 @@ enum RichText {
         // 한국어 글의 "R1~R4" 같은 범위 표시가 취소선(~글자~)으로 바뀌지 않게, 홑 ~ 는 글자 그대로 둔다.
         let escaped = s.replacingOccurrences(of: #"(?<!~)~(?!~)"#, with: #"\~"#, options: .regularExpression)
         let parsed = (try? AttributedString(markdown: escaped, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
-        return mark(parsed, highlight)
+        // 글은 AI 답·저장소 문서에서 온다. file:·앱 전용 주소 링크는 눌러도 열리지 않게 글자만 남긴다.
+        return mark(Safety.removingUnsafeLinks(parsed), highlight)
     }
 
     /// 마크다운 해석 없이 글 그대로 + 검색어 강조.
