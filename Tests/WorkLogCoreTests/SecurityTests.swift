@@ -229,13 +229,16 @@ final class SecurityTests: XCTestCase {
         // 아주 큰 규칙 파일은 앞부분만.
         try String(repeating: "가", count: 3_000_000).write(toFile: project + "/AGENTS.md", atomically: true, encoding: .utf8)
 
+        // 다른 스레드에서 돌려, 멈추면 기다리다 실패하게 한다. (옛 Swift 5.10 에서도 되게 지역 변수 대신 상자에 담는다)
+        final class Box: @unchecked Sendable { var items: [AIConfigItem] = [] }
+        let box = Box()
         let done = expectation(description: "스캔이 끝난다")
-        nonisolated(unsafe) var items: [AIConfigItem] = []
         DispatchQueue.global().async {
-            items = AIConfigScanner.scan(directory: project)
+            box.items = AIConfigScanner.scan(directory: project)
             done.fulfill()
         }
         wait(for: [done], timeout: 10)
+        let items = box.items
         XCTAssertNil(items.first { $0.name == "CLAUDE.md" })
         XCTAssertNil(items.first { $0.kind == .settings })
         XCTAssertNil(items.first { $0.kind == .skill })
