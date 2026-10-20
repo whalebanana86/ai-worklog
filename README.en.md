@@ -160,7 +160,7 @@ Documents, Desktop and Downloads are never scanned (macOS would show permission 
 | Tool | How it's called | Where the input goes |
 |---|---|---|
 | Claude Code | `claude -p --model haiku` with tools, MCP, skills and hooks off, `--no-session-persistence` | Anthropic |
-| Codex | `codex exec --ephemeral -s read-only`, low reasoning effort | OpenAI |
+| Codex | `codex exec --ephemeral -s read-only --ignore-user-config` with shell, apps, plugins, hooks and web search off; your `config.toml` and MCP servers are not loaded, so the Codex default model is used; low reasoning effort | OpenAI |
 | LM Studio | the local server's `/v1/chat/completions` | your Mac |
 
 Input per project and day: the human requests, the AI's final reply to each, and changed file names, trimmed to about 9,000 characters. Past days are summarized once and kept; today waits for a 30-minute break and then merges only the new requests.
