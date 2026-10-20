@@ -2,6 +2,7 @@ import SwiftUI
 import WorkLogCore
 
 /// 스킬·규칙 화면: 내가 만들어 둔 AI 설정과, 실제로 쓴 스킬·명령.
+@MainActor
 struct SkillsView: View {
     @Environment(AppModel.self) private var model
 
@@ -90,6 +91,7 @@ struct SkillsView: View {
 }
 
 /// 스킬 사용 순위.
+@MainActor
 struct SkillUsageList: View {
     @Environment(AppModel.self) private var model
     var usage: [(name: String, count: Int, projects: [String])]
@@ -127,6 +129,7 @@ struct SkillUsageList: View {
 }
 
 /// 설정을 찾은 폴더 하나와 그 안의 항목들.
+@MainActor
 struct ScopeSection: View {
     @Environment(AppModel.self) private var model
     var scope: AIConfigScope
@@ -164,6 +167,7 @@ struct ScopeSection: View {
 }
 
 /// 설정 파일 한 줄. 누르면 내용 앞부분이 펼쳐진다.
+@MainActor
 struct ConfigItemRow: View {
     @Environment(AppModel.self) private var model
     var item: AIConfigItem
@@ -250,6 +254,7 @@ struct ConfigDocumentSheet: View {
 }
 
 /// 프로젝트 화면에 붙는 카드: 이 프로젝트에 걸린 AI 설정과 실제로 쓴 스킬.
+@MainActor
 struct ProjectConfigCard: View {
     @Environment(AppModel.self) private var model
     var project: ProjectSummary

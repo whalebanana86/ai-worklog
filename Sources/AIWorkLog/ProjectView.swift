@@ -1,6 +1,7 @@
 import SwiftUI
 import WorkLogCore
 
+@MainActor
 struct ProjectView: View {
     @Environment(AppModel.self) private var model
     var project: ProjectSummary
@@ -257,6 +258,7 @@ struct ProjectView: View {
 
 /// 하루 동안 이 프로젝트에서 한 일.
 /// 요약에 쓸 AI 가 있으면 AI 가 쓴 요약을 먼저 보여 주고, 세션마다 요청 → 결과 → 고친 파일은 접어 둔다.
+@MainActor
 struct DayWorkCard: View {
     @Environment(AppModel.self) private var model
     var day: DayGroup
@@ -376,6 +378,7 @@ struct DayWorkCard: View {
 }
 
 /// AI 가 쓴 그날 요약: 한 줄 + 핵심 결과 몇 줄. 요약하는 중·기다리는 중·실패·새 요청도 여기서 알린다.
+@MainActor
 struct DaySummaryBox: View {
     @Environment(AppModel.self) private var model
     var projectPath: String
@@ -490,6 +493,7 @@ struct DaySummaryBox: View {
 }
 
 /// 요약할 AI 를 찾지 못했을 때 날짜 목록 위에 띄우는 안내. 저장해 둔 요약은 그대로 보인다.
+@MainActor
 struct NoSummaryEngineNote: View {
     @Environment(AppModel.self) private var model
     /// 아무 도구도 없을 때의 안내는 닫을 수 있다 (메뉴의 "요약할 AI 없음"은 그대로).
@@ -542,6 +546,7 @@ struct NoSummaryEngineNote: View {
 }
 
 /// 날짜별 요약에 쓸 AI 고르기. 이 맥에 없는 도구는 "없음"으로 보여 준다.
+@MainActor
 struct SummaryEngineMenu: View {
     @Environment(AppModel.self) private var model
 

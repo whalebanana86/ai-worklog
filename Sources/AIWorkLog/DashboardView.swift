@@ -2,6 +2,7 @@ import Charts
 import SwiftUI
 import WorkLogCore
 
+@MainActor
 struct DashboardView: View {
     @Environment(AppModel.self) private var model
 
@@ -173,6 +174,7 @@ struct SessionRow: View {
 
 // MARK: - 차트
 
+@MainActor
 struct ActivityChart: View {
     var sessions: [WorkSession]
     var period: Period
@@ -390,6 +392,7 @@ struct TileRows: View {
 }
 
 /// 순위형 가로 막대. 값이 바로 옆에 적혀 있어 따로 툴팁이 필요 없다.
+@MainActor
 struct ProjectBars: View {
     @Environment(AppModel.self) private var model
     var times: [ProjectTime]

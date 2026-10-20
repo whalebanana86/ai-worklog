@@ -3,6 +3,7 @@ import WorkLogCore
 
 /// 한눈에 보기·날짜별 기록·모든 요청이 비었을 때 보여 주는 카드.
 /// 왜 비었는지(모은 기록이 없음 → 검색어 → 도구 거르기 → 기간) 차례로 보고, 그에 맞는 안내와 버튼을 고른다.
+@MainActor
 struct NoRecordsCard: View {
     @Environment(AppModel.self) private var model
     /// 모든 요청 화면이면 "기록" 대신 "요청"이라고 쓴다.

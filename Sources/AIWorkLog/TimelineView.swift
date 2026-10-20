@@ -2,6 +2,7 @@ import SwiftUI
 import WorkLogCore
 
 /// 날짜별로 그날 AI 와 한 작업.
+@MainActor
 struct TimelineView: View {
     @Environment(AppModel.self) private var model
     /// 무한 스크롤: 지금까지 그린 날 수.
@@ -38,6 +39,7 @@ struct TimelineView: View {
     }
 }
 
+@MainActor
 struct DayHeader: View {
     @Environment(AppModel.self) private var model
     var day: DayGroup
@@ -120,6 +122,7 @@ struct DayEntryRow: View {
 }
 
 /// 기간 안에 보낸 모든 요청.
+@MainActor
 struct PromptsView: View {
     @Environment(AppModel.self) private var model
     /// 무한 스크롤: 지금까지 그린 요청 수.

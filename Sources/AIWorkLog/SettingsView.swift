@@ -4,6 +4,7 @@ import WorkLogCore
 /// 설정 창 (⌘,). 설치할 때 고르던 옵션을 앱 안에서도 켜고 끈다.
 ///   - 지난 날짜 AI 요약 미리 만들기  = `build_app.sh --install` (빼려면 `--no-summary`)
 ///   - 자동 보관                       = `build_app.sh --auto-sync` / `--remove-auto-sync`
+@MainActor
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var autoSync = AutoSync().isEnabled

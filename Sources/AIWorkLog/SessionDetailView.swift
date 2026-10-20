@@ -1,6 +1,7 @@
 import SwiftUI
 import WorkLogCore
 
+@MainActor
 struct SessionDetailView: View {
     @Environment(AppModel.self) private var model
     var session: WorkSession
@@ -290,6 +291,7 @@ struct SessionDetailView: View {
 }
 
 /// 요청 하나와 그에 대한 AI 의 마지막 답.
+@MainActor
 struct TurnView: View {
     @Environment(AppModel.self) private var model
     var number: Int

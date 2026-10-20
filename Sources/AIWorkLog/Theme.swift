@@ -176,7 +176,20 @@ struct CardPair<First: View, Second: View>: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .background {
+            GeometryReader { geometry in
+                Color.clear.preference(key: CardPairWidthKey.self, value: geometry.size.width)
+            }
+        }
+        .onPreferenceChange(CardPairWidthKey.self) { width = $0 }
+    }
+}
+
+private struct CardPairWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

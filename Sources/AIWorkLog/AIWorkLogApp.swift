@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// 시작점은 main.swift (창 없이 쓰는 `cli` 모드를 먼저 가른다).
+@MainActor
 struct AIWorkLogApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel()

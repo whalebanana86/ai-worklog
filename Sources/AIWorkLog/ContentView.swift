@@ -1,9 +1,12 @@
 import SwiftUI
 import WorkLogCore
 
+@MainActor
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    #if compiler(>=6.0)
     @Environment(\.openSettings) private var openSettings
+    #endif
 
     var body: some View {
         @Bindable var model = model
@@ -23,7 +26,18 @@ struct ContentView: View {
             // 화면 확인용: `--settings` 로 띄우면 설정 창을 연다.
             guard ProcessInfo.processInfo.arguments.contains("--settings") else { return }
             try? await Task.sleep(for: .milliseconds(800))
+            #if compiler(>=6.0)
             openSettings()
+            #else
+            // Xcode 15 has SettingsLink but no OpenSettingsAction. Invoke the
+            // standard Settings menu item so the SwiftUI Settings scene opens.
+            if let menu = NSApp.mainMenu?.items.first?.submenu,
+               let index = menu.items.firstIndex(where: {
+                   $0.keyEquivalent == "," && $0.keyEquivalentModifierMask.contains(.command)
+               }) {
+                menu.performActionForItem(at: index)
+            }
+            #endif
         }
         .overlay { if !model.hasLoaded { LoadingView(progress: model.progress) } }
         .sheet(item: $model.report) { draft in ReportSheet(draft: draft) }
@@ -48,6 +62,7 @@ struct ContentView: View {
 
 /// 오른쪽 본문. NavigationSplitView 의 detail 클로저 안에서 읽은 값은 변경 감지가 안 되어서,
 /// 따로 떼어 낸 View 의 body 에서 모델을 읽는다.
+@MainActor
 struct DetailArea: View {
     @Environment(AppModel.self) private var model
 
@@ -168,6 +183,7 @@ struct DetailArea: View {
     }
 }
 
+@MainActor
 struct Sidebar: View {
     @Environment(AppModel.self) private var model
 

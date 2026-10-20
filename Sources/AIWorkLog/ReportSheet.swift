@@ -4,6 +4,7 @@ import WorkLogCore
 import UniformTypeIdentifiers
 
 /// 마크다운 보고서를 보여 주고, 고치고, 복사하거나 파일로 저장한다.
+@MainActor
 struct ReportSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
