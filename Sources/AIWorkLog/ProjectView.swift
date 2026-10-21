@@ -50,14 +50,6 @@ struct ProjectView: View {
             // 목록이 이 스택에 바로 들어가야 맨 아래에 닿았을 때를 알 수 있어서 게으른 스택을 쓴다.
             LazyVStack(alignment: .leading, spacing: 12) {
                 header
-                TileRows(tiles: [
-                    StatTile(label: L("작업 시간"), value: Fmt.duration(project.activeSeconds), caption: L("전체 기간"), symbol: "clock"),
-                    StatTile(label: L("세션"), value: Fmt.number(project.sessions.count), caption: toolsCaption, symbol: "rectangle.stack"),
-                    StatTile(label: L("요청"), value: Fmt.number(project.promptCount), caption: L("전체 기간"), symbol: "text.bubble"),
-                    StatTile(label: L("처음 작업"), value: project.sessions.isEmpty ? "–" : Fmt.day(project.firstActive), caption: nil, symbol: "flag"),
-                    StatTile(label: L("마지막 작업"), value: project.sessions.isEmpty ? "–" : Fmt.relativeDay(project.lastActive),
-                             caption: project.sessions.isEmpty ? nil : Fmt.dateTime(project.lastActive), symbol: "clock.arrow.circlepath"),
-                ])
 
                 if !inPeriod.isEmpty {
                     Card(title: L("%@ 요청", model.period.longLabel), subtitle: L("막대를 누르면 그날 한 일만 봐요")) {
@@ -193,6 +185,7 @@ struct ProjectView: View {
                     .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.cardBorder))
             }
             .buttonStyle(.plain)
+            .contextMenu { SessionMenuItems(session: session) }
         }
         if project.sessions.count > sessionLimit {
             LoadMoreRow(remaining: project.sessions.count - sessionLimit) { sessionLimit += Self.sessionPage }
@@ -229,30 +222,35 @@ struct ProjectView: View {
         }
     }
 
-    private var toolsCaption: String {
-        AITool.chartOrder.filter(project.tools.contains).map(\.displayName).joined(separator: " · ")
-    }
-
+    /// 머리: 이름 + 전체 기간 한 줄 요약 + 경로. 자세한 숫자는 오른쪽 정보 패널에, 폴더 동작은 … 메뉴·오른쪽 클릭에 둔다.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Image(systemName: "folder.fill").font(.title2).foregroundStyle(Color.accentColor)
-                Text(project.name).font(.system(size: 28, weight: .bold))
-            }
-            Text(Fmt.path(project.path))
-                .font(.callout.monospaced())
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-            if project.path.hasPrefix("/") {
-                HStack(spacing: 8) {
-                    Button { model.reveal(project.path) } label: { Label(L("Finder 에서 열기"), systemImage: "folder") }
-                    Button { model.openTerminal(at: project.path) } label: { Label(L("터미널 열기"), systemImage: "terminal") }
-                    Button { model.copy(project.path, message: L("경로를 복사했어요")) } label: { Label(L("경로 복사"), systemImage: "doc.on.doc") }
+        PageHeader(title: project.name, summary: headerSummary, symbol: "folder.fill") {
+            HStack(spacing: 6) {
+                Text(Fmt.path(project.path))
+                    .font(.callout.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                if project.path.hasPrefix("/") {
+                    Menu { ProjectMenuItems(path: project.path) } label: {
+                        Label(L("폴더 동작"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help(L("Finder 에서 열기 · 터미널 열기 · 경로 복사"))
                 }
-                .controlSize(.small)
-                .padding(.top, 2)
             }
         }
+        .contextMenu { ProjectMenuItems(path: project.path) }
+    }
+
+    private var headerSummary: String {
+        guard !project.sessions.isEmpty else { return L("메모만 남음") }
+        return [L("전체 기간"), L("세션 %@개", Fmt.number(project.sessions.count)), L("요청 %@개", Fmt.number(project.promptCount)),
+                L("약 %@", Fmt.duration(project.activeSeconds)), "\(Fmt.day(project.firstActive)) ~ \(Fmt.relativeDay(project.lastActive))"]
+            .joined(separator: " · ")
     }
 }
 
@@ -371,6 +369,7 @@ struct DayWorkCard: View {
                         WorkItemRow(prompt: prompt, projectPath: entry.session.projectPath, highlight: highlight)
                     }
                     .buttonStyle(.plain)
+                    .contextMenu { SessionMenuItems(session: entry.session, prompt: prompt) }
                 }
             }
         }
@@ -384,6 +383,7 @@ struct DaySummaryBox: View {
     var projectPath: String
     var projectName: String
     var day: Date
+    @State private var editing: DaySummary?
 
     var body: some View {
         let key = model.summaryKey(project: projectPath, day: day)
@@ -405,6 +405,13 @@ struct DaySummaryBox: View {
                 if let summary, !busy {
                     Text("· \(summary.engine)").font(.caption).foregroundStyle(.tertiary)
                         .help(L("%@에 요청 %@개까지 요약했어요", Fmt.dateTime(summary.created), String(summary.promptCount)))
+                    if summary.edited {
+                        Chip(text: L("직접 고침"), symbol: "pencil")
+                    } else {
+                        // AI 글은 틀릴 수 있다고 늘 알린다 (생성형 AI 지침).
+                        Text(L("· 틀릴 수 있어요")).font(.caption).foregroundStyle(.tertiary)
+                            .help(L("AI 가 기록을 읽고 쓴 요약이라 틀리거나 빠진 내용이 있을 수 있어요. … 메뉴의 \"고치기\"로 바로잡을 수 있어요"))
+                    }
                 }
                 Spacer()
                 if busy {
@@ -428,6 +435,7 @@ struct DaySummaryBox: View {
                     .font(.caption)
                     .help(buttonHelp(summary: summary, newer: newer))
                 }
+                if let summary, !busy { summaryMenu(summary, key: key) }
             }
 
             if let summary {
@@ -445,7 +453,7 @@ struct DaySummaryBox: View {
                 }
                 .font(.callout)
                 if newer > 0 && !busy {
-                    Text(newerNote(newer, wake: wake, canSummarize: canSummarize))
+                    Text(summary.pinned ? pinnedNote(canSummarize: canSummarize) : newerNote(newer, wake: wake, canSummarize: canSummarize))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -474,6 +482,37 @@ struct DaySummaryBox: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .sheet(item: $editing) { summary in
+            SummaryEditor(summary: summary) { headline, points in
+                model.editSummary(key: summary.key, headline: headline, points: points)
+            }
+        }
+    }
+
+    /// 고치기·되돌리기·복사. AI 가 없어도 저장된 요약은 손볼 수 있다.
+    private func summaryMenu(_ summary: DaySummary, key: String) -> some View {
+        Menu {
+            Button(L("고치기…")) { editing = summary }
+            if let previous = summary.previous {
+                Button(L("전 요약으로 되돌리기")) { model.revertSummary(key: key) }
+                    .help(previous.headline)
+            }
+            Button(L("요약 복사")) {
+                let text = ([summary.headline] + summary.points.map { "- \($0)" }).joined(separator: "\n")
+                model.copy(text, message: L("요약을 복사했어요"))
+            }
+        } label: {
+            Label(L("요약 메뉴"), systemImage: "ellipsis.circle").labelStyle(.iconOnly)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(L("요약 고치기 · 되돌리기 · 복사"))
+    }
+
+    private func pinnedNote(canSummarize: Bool) -> String {
+        let head = L("직접 손본 요약이라 새 요청이 생겨도 저절로 바꾸지 않아요.")
+        return canSummarize ? head + " " + L("\"이어서 요약\"을 누르면 새 요청을 더해요") : head
     }
 
     private func newerNote(_ newer: Int, wake: Date?, canSummarize: Bool) -> String {
@@ -677,5 +716,61 @@ struct NoteRow: View {
         case "reference": return L("참고")
         default: return kind
         }
+    }
+}
+
+/// AI 요약을 직접 고쳐 쓰는 창. 첫 줄은 한 줄 요약, 아래는 핵심 결과를 한 줄에 하나씩.
+struct SummaryEditor: View {
+    var summary: DaySummary
+    var onSave: (String, [String]) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var headline: String
+    @State private var points: String
+
+    init(summary: DaySummary, onSave: @escaping (String, [String]) -> Void) {
+        self.summary = summary
+        self.onSave = onSave
+        _headline = State(initialValue: summary.headline)
+        _points = State(initialValue: summary.points.joined(separator: "\n"))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L("요약 고치기")).font(.headline)
+            TextField(L("한 줄 요약"), text: $headline)
+                .textFieldStyle(.roundedBorder)
+            Text(L("핵심 결과 (한 줄에 하나씩)")).font(.caption).foregroundStyle(.secondary)
+            TextEditor(text: $points)
+                .font(.body)
+                .frame(minHeight: 140)
+                .scrollContentBackground(.hidden)
+                .padding(6)
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.cardBorder))
+            Text(L("고친 요약은 새 요청이 생겨도 저절로 바꾸지 않아요. 고치기 전 요약은 \"전 요약으로 되돌리기\"로 다시 볼 수 있어요."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button(L("취소"), role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button(L("저장")) {
+                    onSave(headline, lines)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(headline.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 480)
+    }
+
+    /// 줄마다 앞의 "- "·"• " 는 뗀다.
+    private var lines: [String] {
+        points.split(whereSeparator: \.isNewline).map {
+            $0.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: #"^[-•*]\s*"#, with: "", options: .regularExpression)
+        }.filter { !$0.isEmpty }
     }
 }

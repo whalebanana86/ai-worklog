@@ -48,7 +48,6 @@ struct SessionDetailView: View {
             // 요청이 수백 개인 세션도 있어서, 화면에 보이는 턴만 그리도록 게으른 스택을 쓴다.
             LazyVStack(alignment: .leading, spacing: 18) {
                 header
-                stats
                 Picker(L("보기"), selection: $tab) {
                     Text(L("대화 흐름 %@", String(session.userPrompts.count))).tag(Tab.conversation)
                     Text(L("고친 파일 %@", String(session.files.count))).tag(Tab.files)
@@ -96,25 +95,36 @@ struct SessionDetailView: View {
                         .help(L("이 세션에서 쓴 스킬·명령"))
                 }
             }
-            Text(session.title)
-                .font(.system(size: 24, weight: .bold))
-                .textSelection(.enabled)
-            HStack(spacing: 12) {
-                Button { model.show(project: session.projectPath) } label: {
-                    Label(session.projectName, systemImage: "folder")
+            // 숫자는 한 줄로 줄이고, 자세한 것은 오른쪽 정보 패널에 둔다. 대화가 첫 화면에 오게.
+            PageHeader(title: session.title, summary: numbersLine) {
+                HStack(spacing: 12) {
+                    Button { model.show(project: session.projectPath) } label: {
+                        Label(session.projectName, systemImage: "folder")
+                    }
+                    .buttonStyle(.link)
+                    if let branch = session.gitBranch {
+                        Label(branch, systemImage: "arrow.triangle.branch").foregroundStyle(.secondary)
+                    }
+                    Label(Fmt.timeRange(session.start, session.end), systemImage: "calendar").foregroundStyle(.secondary)
                 }
-                .buttonStyle(.link)
-                if let branch = session.gitBranch {
-                    Label(branch, systemImage: "arrow.triangle.branch").foregroundStyle(.secondary)
+                .font(.callout)
+                if session.cwd != session.projectPath, !session.cwd.isEmpty {
+                    Text(L("%@ 에서 실행", Fmt.path(session.cwd))).font(.caption).foregroundStyle(.secondary)
                 }
-                Label(Fmt.timeRange(session.start, session.end), systemImage: "calendar").foregroundStyle(.secondary)
+                actions.padding(.top, 4)
             }
-            .font(.callout)
-            if session.cwd != session.projectPath, !session.cwd.isEmpty {
-                Text(L("%@ 에서 실행", Fmt.path(session.cwd))).font(.caption).foregroundStyle(.secondary)
-            }
-            actions
         }
+    }
+
+    private var numbersLine: String {
+        var parts = [Fmt.duration(session.activeSeconds), L("요청 %@개", Fmt.number(session.userPrompts.count))]
+        if !session.files.isEmpty { parts.append(L("파일 %@개 고침", Fmt.number(session.files.count))) }
+        if let added = session.linesAdded, let removed = session.linesRemoved, added + removed > 0 {
+            parts.append("+\(Fmt.compact(added)) −\(Fmt.compact(removed))")
+        }
+        if let cost = session.costUSD { parts.append(Fmt.cost(cost)) }
+        if session.totalTokens > 0 { parts.append(L("토큰") + " " + Fmt.compact(session.totalTokens)) }
+        return parts.joined(separator: " · ")
     }
 
     private var actions: some View {
@@ -139,21 +149,6 @@ struct SessionDetailView: View {
             Button { model.makeReport(session: session) } label: { Label(L("보고서"), systemImage: "doc.text") }
         }
         .controlSize(.small)
-    }
-
-    private var stats: some View {
-        var tiles = [
-            StatTile(label: L("작업 시간"), value: Fmt.duration(session.activeSeconds), caption: Fmt.timeRange(session.start, session.end), symbol: "clock"),
-            StatTile(label: L("요청"), value: Fmt.number(session.userPrompts.count), caption: nil, symbol: "text.bubble"),
-            StatTile(label: L("고친 파일"), value: Fmt.number(session.files.count), caption: nil, symbol: "doc"),
-            StatTile(label: L("코드 변경"), value: "+\(Fmt.compact(session.linesAdded ?? 0))",
-                     caption: L("−%@줄", Fmt.compact(session.linesRemoved ?? 0)), symbol: "plus.forwardslash.minus"),
-        ]
-        if let cost = session.costUSD {
-            tiles.append(StatTile(label: L("비용"), value: Fmt.cost(cost), caption: nil, symbol: "dollarsign.circle"))
-        }
-        tiles.append(StatTile(label: L("토큰"), value: Fmt.compact(session.totalTokens), caption: nil, symbol: "number"))
-        return TileRows(tiles: tiles)
     }
 
     // MARK: 대화 흐름

@@ -43,13 +43,7 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(model.period.longLabel)
-                .font(.system(size: 28, weight: .bold))
-            Text(summarySentence)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
+        PageHeader(title: L("한눈에 보기"), summary: "\(model.period.longLabel) · \(summarySentence)")
     }
 
     private var summarySentence: String {
@@ -60,13 +54,21 @@ struct DashboardView: View {
 
     private var kpis: some View {
         let t = model.totals
+        let p = model.previousTotals
+        func trend(_ now: Double, _ before: Double?) -> String? { Trend.text(now, before, versus: model.period.previousLabel) }
         return TileRows(tiles: [
-            StatTile(label: L("작업 시간"), value: Fmt.duration(t.activeSeconds), caption: L("10분 넘게 쉰 시간은 뺐어요"), symbol: "clock"),
-            StatTile(label: L("요청"), value: Fmt.number(t.prompts), caption: L("세션 %@개", Fmt.number(t.sessions)), symbol: "text.bubble"),
-            StatTile(label: L("작업한 날"), value: L("%@일", String(t.activeDays)), caption: L("프로젝트 %@곳", String(t.projects)), symbol: "calendar"),
-            StatTile(label: L("고친 파일"), value: Fmt.number(t.files), caption: L("+%@ / −%@줄 (어림)", Fmt.compact(t.linesAdded), Fmt.compact(t.linesRemoved)), symbol: "doc.badge.ellipsis"),
-            StatTile(label: L("사용 비용"), value: t.costUSD > 0 ? Fmt.cost(t.costUSD) : "–", caption: L("Claude Code 기록 기준"), symbol: "dollarsign.circle"),
-            StatTile(label: L("토큰"), value: Fmt.compact(t.tokens), caption: L("캐시 읽기 포함"), symbol: "number"),
+            StatTile(label: L("작업 시간"), value: Fmt.duration(t.activeSeconds), caption: L("10분 넘게 쉰 시간은 뺐어요"), symbol: "clock",
+                     trend: trend(t.activeSeconds, p?.activeSeconds)),
+            StatTile(label: L("요청"), value: Fmt.number(t.prompts), caption: L("세션 %@개", Fmt.number(t.sessions)), symbol: "text.bubble",
+                     trend: trend(Double(t.prompts), p.map { Double($0.prompts) })),
+            StatTile(label: L("작업한 날"), value: L("%@일", String(t.activeDays)), caption: L("프로젝트 %@곳", String(t.projects)), symbol: "calendar",
+                     trend: trend(Double(t.activeDays), p.map { Double($0.activeDays) })),
+            StatTile(label: L("고친 파일"), value: Fmt.number(t.files), caption: L("+%@ / −%@줄 (어림)", Fmt.compact(t.linesAdded), Fmt.compact(t.linesRemoved)), symbol: "doc.badge.ellipsis",
+                     trend: trend(Double(t.files), p.map { Double($0.files) })),
+            StatTile(label: L("사용 비용"), value: t.costUSD > 0 ? Fmt.cost(t.costUSD) : "–", caption: L("Claude Code 기록 기준"), symbol: "dollarsign.circle",
+                     trend: trend(t.costUSD, p?.costUSD)),
+            StatTile(label: L("토큰"), value: Fmt.compact(t.tokens), caption: L("캐시 읽기 포함"), symbol: "number",
+                     trend: trend(Double(t.tokens), p.map { Double($0.tokens) })),
         ])
     }
 
@@ -77,6 +79,7 @@ struct DashboardView: View {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, session in
                     Button { model.open(session) } label: { SessionRow(session: session) }
                         .buttonStyle(.plain)
+                        .contextMenu { SessionMenuItems(session: session) }
                     if index < items.count - 1 { Divider() }
                 }
             }
@@ -192,6 +195,8 @@ struct ActivityChart: View {
     }
 
     private var unit: Calendar.Component { period == .today ? .hour : .day }
+    /// 막대 너비 (한 칸 대비). 마우스를 올린 띠·고른 날 띠도 같은 너비로 그려 기간이 바뀌어도 막대와 맞는다.
+    private static let barRatio = 0.7
 
     private var buckets: [Bucket] {
         let cal = Calendar.current
@@ -245,21 +250,22 @@ struct ActivityChart: View {
     private func chart(data: [Bucket], tools: [AITool]) -> some View {
         Chart {
             ForEach(data) { b in
-                BarMark(x: .value(L("날짜"), b.date, unit: unit), y: .value(L("요청"), b.count), width: .ratio(0.7))
+                BarMark(x: .value(L("날짜"), b.date, unit: unit), y: .value(L("요청"), b.count), width: .ratio(Self.barRatio))
                     .foregroundStyle(by: .value(L("도구"), b.tool.displayName))
                     .cornerRadius(2)
             }
             // 마우스를 올린 막대 뒤의 옅은 띠. 툴팁은 여기 붙이지 않는다(붙이면 같이 막대 뒤로 깔린다).
+            // 두께를 고정한 선 대신 칸 비율로 그린 띠라서 7일(넓은 막대)·90일(좁은 막대)에도 막대 너비와 같다.
             if let hovered {
-                RuleMark(x: .value(L("선택"), hovered, unit: unit))
+                RectangleMark(x: .value(L("선택"), hovered, unit: unit), width: .ratio(Self.barRatio))
                     .foregroundStyle(Color.secondary.opacity(0.15))
-                    .lineStyle(StrokeStyle(lineWidth: 18))
+                    .cornerRadius(2)
                     .zIndex(-1)
             }
             if let picked {
-                RuleMark(x: .value(L("고른 날"), picked, unit: unit))
+                RectangleMark(x: .value(L("고른 날"), picked, unit: unit), width: .ratio(Self.barRatio))
                     .foregroundStyle(Color.accentColor.opacity(0.18))
-                    .lineStyle(StrokeStyle(lineWidth: 18))
+                    .cornerRadius(2)
                     .zIndex(-1)
             }
         }
@@ -373,11 +379,17 @@ struct TileRows: View {
     var tiles: [StatTile]
 
     var body: some View {
+        // 넓으면 한 줄, 좁아지면 두 줄, 더 좁으면 두 칸씩 (사이드바·정보 패널을 넓혀 본문이 좁아질 때).
         ViewThatFits(in: .horizontal) {
             row(tiles[...])
             VStack(spacing: 12) {
                 row(tiles.prefix((tiles.count + 1) / 2))
                 row(tiles.dropFirst((tiles.count + 1) / 2))
+            }
+            VStack(spacing: 12) {
+                ForEach(Array(stride(from: 0, to: tiles.count, by: 2)), id: \.self) { start in
+                    row(tiles[start..<min(start + 2, tiles.count)])
+                }
             }
         }
     }

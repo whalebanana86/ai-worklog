@@ -198,6 +198,8 @@ struct StatTile: View {
     var value: String
     var caption: String?
     var symbol: String
+    /// 그 전 같은 기간과 견준 변화 ("▲ 12% · 그 전 30일보다").
+    var trend: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -205,10 +207,14 @@ struct StatTile: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .font(.title.weight(.semibold))
+                .fontDesign(.rounded)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+            if let trend {
+                Text(trend).font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+            }
             if let caption {
                 Text(caption).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
             }
@@ -217,6 +223,41 @@ struct StatTile: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.cardBorder))
+    }
+}
+
+/// 화면 맨 위 머리: 큰 제목 + 한 줄 요약, 그 아래 꼬리표·버튼 줄(있으면). 모든 화면이 같은 꼴을 쓴다.
+/// 창 제목(툴바)은 "어디인지"를, 이 머리는 "여기에 무엇이 있는지"를 말한다.
+struct PageHeader<Accessory: View>: View {
+    var title: String
+    var summary: String?
+    var symbol: String?
+    @ViewBuilder var accessory: Accessory
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                if let symbol { Image(systemName: symbol).font(.title2).foregroundStyle(Color.accentColor) }
+                Text(title)
+                    .font(.largeTitle.weight(.bold))
+                    .lineLimit(2)
+                    .textSelection(.enabled)
+            }
+            if let summary, !summary.isEmpty {
+                Text(summary)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            accessory
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension PageHeader where Accessory == EmptyView {
+    init(title: String, summary: String?, symbol: String? = nil) {
+        self.init(title: title, summary: summary, symbol: symbol) { EmptyView() }
     }
 }
 

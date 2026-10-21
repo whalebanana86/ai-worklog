@@ -109,6 +109,13 @@ public final class WorkLogStore: @unchecked Sendable {
         if !db.hasColumn("day_summaries", "covered_until") {
             try db.exec("ALTER TABLE day_summaries ADD COLUMN covered_until REAL")
         }
+        if !db.hasColumn("day_summaries", "edited") {
+            try db.exec("""
+                ALTER TABLE day_summaries ADD COLUMN edited INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE day_summaries ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE day_summaries ADD COLUMN previous TEXT;
+                """)
+        }
         try db.run("INSERT OR IGNORE INTO meta(key, value) VALUES ('schema', ?)", [String(Self.schemaVersion)])
         try db.run("INSERT OR IGNORE INTO meta(key, value) VALUES ('created', ?)", [String(Date().timeIntervalSince1970)])
     }
@@ -187,12 +194,17 @@ public final class WorkLogStore: @unchecked Sendable {
     /// AI 가 쓴 날짜별 요약. 열쇠는 `DaySummary.key`.
     public func loadSummaries() throws -> [String: DaySummary] {
         var result: [String: DaySummary] = [:]
-        try db.query("SELECT project, day, digest, engine, headline, points, prompt_count, created, covered_until FROM day_summaries") { row in
+        try db.query("""
+            SELECT project, day, digest, engine, headline, points, prompt_count, created, covered_until, edited, pinned, previous
+            FROM day_summaries
+            """) { row in
             guard let project = row.string(0), let day = row.string(1) else { return }
             let summary = DaySummary(project: project, day: day, digest: row.string(2) ?? "", engine: row.string(3) ?? "",
                                      headline: row.string(4) ?? "", points: Self.decode([String].self, row.string(5)) ?? [],
                                      promptCount: row.int(6), coveredUntil: row.optionalDouble(8).map(Date.init(timeIntervalSince1970:)),
-                                     created: Date(timeIntervalSince1970: row.double(7)))
+                                     created: Date(timeIntervalSince1970: row.double(7)),
+                                     edited: row.int(9) != 0, pinned: row.int(10) != 0,
+                                     previous: Self.decode(DaySummary.Version.self, row.string(11)))
             result[summary.key] = summary
         }
         return result
@@ -200,11 +212,30 @@ public final class WorkLogStore: @unchecked Sendable {
 
     // MARK: - 쓰기
 
+    /// 요약을 저장한다. 되돌리기용 전 판을 정하지 않았으면, 지금 저장돼 있던 것을 전 판으로 남긴다 (터미널에서 만든 요약도).
     public func saveSummary(_ s: DaySummary) throws {
+        var s = s
+        if s.previous == nil, let old = try loadSummary(project: s.project, day: s.day) { s = s.replacing(old) }
         try db.run("""
-            INSERT OR REPLACE INTO day_summaries (project, day, digest, engine, headline, points, prompt_count, created, covered_until)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [s.project, s.day, s.digest, s.engine, s.headline, Self.encode(s.points), s.promptCount, s.created, s.coveredUntil])
+            INSERT OR REPLACE INTO day_summaries
+                (project, day, digest, engine, headline, points, prompt_count, created, covered_until, edited, pinned, previous)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [s.project, s.day, s.digest, s.engine, s.headline, Self.encode(s.points), s.promptCount, s.created, s.coveredUntil,
+                  s.edited, s.pinned, s.previous.map { Self.encode($0) }])
+    }
+
+    private func loadSummary(project: String, day: String) throws -> DaySummary? {
+        var found: DaySummary?
+        try db.query("""
+            SELECT digest, engine, headline, points, prompt_count, created, covered_until, edited FROM day_summaries
+            WHERE project = ? AND day = ?
+            """, [project, day]) { row in
+            found = DaySummary(project: project, day: day, digest: row.string(0) ?? "", engine: row.string(1) ?? "",
+                               headline: row.string(2) ?? "", points: Self.decode([String].self, row.string(3)) ?? [],
+                               promptCount: row.int(4), coveredUntil: row.optionalDouble(6).map(Date.init(timeIntervalSince1970:)),
+                               created: Date(timeIntervalSince1970: row.double(5)), edited: row.int(7) != 0)
+        }
+        return found
     }
 
     /// 바뀐 세션·읽은 위치·메모를 한 번에 저장한다. 중간에 실패하면 아무것도 바꾸지 않는다.

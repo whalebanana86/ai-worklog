@@ -1,7 +1,7 @@
 import Foundation
 
 /// AI 가 쓴 "이날 이 프로젝트에서 한 일" 요약.
-public struct DaySummary: Hashable, Sendable {
+public struct DaySummary: Hashable, Sendable, Identifiable {
     public var project: String
     /// yyyy-MM-dd
     public var day: String
@@ -16,9 +16,16 @@ public struct DaySummary: Hashable, Sendable {
     /// 요약에 담은 마지막 요청 시각. 그 뒤 요청만 더해 이어 쓸 때 쓴다 (예전 요약은 없음).
     public var coveredUntil: Date?
     public var created: Date
+    /// 사람이 직접 고쳐 쓴 글.
+    public var edited: Bool
+    /// 사람이 고치거나 되돌린 요약. 새 요청이 생겨도 저절로 다시 요약하지 않는다 (버튼을 누를 때만).
+    public var pinned: Bool
+    /// 바로 전 요약 (되돌리기용). 한 단계만 남긴다.
+    public var previous: Version?
 
     public init(project: String, day: String, digest: String, engine: String, headline: String, points: [String],
-                promptCount: Int, coveredUntil: Date? = nil, created: Date = Date()) {
+                promptCount: Int, coveredUntil: Date? = nil, created: Date = Date(),
+                edited: Bool = false, pinned: Bool = false, previous: Version? = nil) {
         self.project = project
         self.day = day
         self.digest = digest
@@ -28,10 +35,68 @@ public struct DaySummary: Hashable, Sendable {
         self.promptCount = promptCount
         self.coveredUntil = coveredUntil
         self.created = created
+        self.edited = edited
+        self.pinned = pinned
+        self.previous = previous
     }
 
     public var key: String { Self.key(project: project, day: day) }
+    public var id: String { key }
     public static func key(project: String, day: String) -> String { project + "|" + day }
+
+    /// 되돌리기용으로 남겨 두는 요약 한 판. 어디까지 담았는지도 같이 둬서, 되돌리면 그때 상태 그대로 돌아간다.
+    public struct Version: Codable, Hashable, Sendable {
+        public var digest: String
+        public var engine: String
+        public var headline: String
+        public var points: [String]
+        public var promptCount: Int
+        public var coveredUntil: Date?
+        public var created: Date
+        public var edited: Bool
+    }
+
+    public var version: Version {
+        Version(digest: digest, engine: engine, headline: headline, points: points, promptCount: promptCount,
+                coveredUntil: coveredUntil, created: created, edited: edited)
+    }
+
+    /// AI 가 새로 쓴 요약으로 바꿀 때: 지금 있던 것을 되돌리기용으로 남긴다.
+    public func replacing(_ old: DaySummary?) -> DaySummary {
+        var s = self
+        if let old, old.headline != headline || old.points != points { s.previous = old.version }
+        return s
+    }
+
+    /// 사람이 고쳐 쓴 글로 바꾼다. 고치기 전 것은 되돌리기용으로 남긴다.
+    public func editing(headline: String, points: [String], now: Date = Date()) -> DaySummary {
+        var s = self
+        s.previous = version
+        s.headline = headline
+        s.points = points
+        s.edited = true
+        s.pinned = true
+        s.created = now
+        return s
+    }
+
+    /// 바로 전 요약으로 되돌린다. 지금 것은 되돌리기용으로 남겨서, 한 번 더 하면 다시 돌아온다.
+    public func revertedToPrevious() -> DaySummary? {
+        guard let p = previous else { return nil }
+        var s = self
+        s.previous = version
+        s.digest = p.digest
+        s.engine = p.engine
+        s.headline = p.headline
+        s.points = p.points
+        s.promptCount = p.promptCount
+        s.coveredUntil = p.coveredUntil
+        s.created = p.created
+        s.edited = p.edited
+        // 사람이 고른 판이라, 새 요청이 생겨도 저절로 바꾸지 않는다.
+        s.pinned = true
+        return s
+    }
 }
 
 /// 요약을 맡길 수 있는 AI 도구. 이 맥에 깔려 있는 것만 찾는다.
@@ -231,6 +296,8 @@ public enum DaySummarizer {
         let fresh = asked.filter { $0.date > covered }.count
         if force { return fresh > 0 ? .update(after: covered) : .full }
         guard fresh > 0 else { return .keep }
+        // 사람이 고치거나 되돌린 요약은 버튼을 누를 때만 바꾼다.
+        if existing.pinned { return .keep }
         if isToday { return wake <= now ? .update(after: covered) : .wait(until: wake) }
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: day.day)) ?? now
         return existing.created < dayEnd ? .update(after: covered) : .keep

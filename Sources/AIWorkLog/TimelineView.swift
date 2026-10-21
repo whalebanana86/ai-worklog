@@ -7,6 +7,7 @@ struct TimelineView: View {
     @Environment(AppModel.self) private var model
     /// 무한 스크롤: 지금까지 그린 날 수.
     @State private var dayLimit = TimelineView.pageSize
+    @State private var selection: String?
 
     static let pageSize = 14
 
@@ -15,12 +16,20 @@ struct TimelineView: View {
             if model.days.isEmpty && model.hasLoaded {
                 NoRecordsPage()
             } else {
-                List {
-                    ForEach(model.days.prefix(dayLimit)) { day in
+                let shown = Array(model.days.prefix(dayLimit))
+                let sessions = Dictionary(shown.flatMap(\.entries).map { ($0.id, $0.session) }, uniquingKeysWith: { a, _ in a })
+                List(selection: $selection) {
+                    PageHeader(title: L("날짜별 기록"), summary: summary)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                        .listRowSeparator(.hidden)
+                        .selectionDisabled()
+                    ForEach(shown) { day in
                         Section {
                             ForEach(day.entries) { entry in
                                 Button { model.open(entry.session) } label: { DayEntryRow(entry: entry) }
                                     .buttonStyle(.plain)
+                                    .tag(entry.id)
                             }
                         } header: {
                             DayHeader(day: day)
@@ -32,10 +41,23 @@ struct TimelineView: View {
                     }
                 }
                 .listStyle(.inset)
+                // 위아래 화살표로 고르고 Return(또는 두 번 누르기)으로 열기, 오른쪽 클릭으로 메뉴.
+                .contextMenu(forSelectionType: String.self) { ids in
+                    if let id = ids.first, let session = sessions[id] { SessionMenuItems(session: session) }
+                } primaryAction: { ids in
+                    if let id = ids.first, let session = sessions[id] { model.open(session) }
+                }
             }
         }
         .onChange(of: model.period) { dayLimit = Self.pageSize }
         .onChange(of: model.search) { dayLimit = Self.pageSize }
+    }
+
+    private var summary: String {
+        let prompts = model.days.reduce(0) { $0 + $1.promptCount }
+        let seconds = model.days.reduce(0) { $0 + $1.activeSeconds }
+        return [model.period.longLabel, L("%@일 동안 요청 %@개", String(model.days.count), String(prompts)), L("약 %@", Fmt.duration(seconds))]
+            .joined(separator: " · ")
     }
 }
 
@@ -127,6 +149,7 @@ struct PromptsView: View {
     @Environment(AppModel.self) private var model
     /// 무한 스크롤: 지금까지 그린 요청 수.
     @State private var limit = PromptsView.pageSize
+    @State private var selection: String?
 
     static let pageSize = 60
 
@@ -153,8 +176,15 @@ struct PromptsView: View {
             if items.isEmpty && model.hasLoaded {
                 NoRecordsPage(requests: true)
             } else {
-                List {
-                    ForEach(items.prefix(limit)) { item in
+                let shown = Array(items.prefix(limit))
+                let byId = Dictionary(shown.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+                List(selection: $selection) {
+                    PageHeader(title: L("모든 요청"), summary: summary(count: items.count))
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                        .listRowSeparator(.hidden)
+                        .selectionDisabled()
+                    ForEach(shown) { item in
                     Button { model.open(item.session) } label: {
                         HStack(alignment: .top, spacing: 12) {
                             VStack(alignment: .trailing, spacing: 2) {
@@ -179,6 +209,7 @@ struct PromptsView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .tag(item.id)
                     }
                     if items.count > limit {
                         LoadMoreRow(remaining: items.count - limit) { limit += Self.pageSize }
@@ -186,9 +217,20 @@ struct PromptsView: View {
                     }
                 }
                 .listStyle(.inset)
+                .contextMenu(forSelectionType: String.self) { ids in
+                    if let id = ids.first, let item = byId[id] { SessionMenuItems(session: item.session, prompt: item.prompt) }
+                } primaryAction: { ids in
+                    if let id = ids.first, let item = byId[id] { model.open(item.session) }
+                }
             }
         }
         .onChange(of: model.period) { limit = Self.pageSize }
         .onChange(of: model.search) { limit = Self.pageSize }
+    }
+
+    private func summary(count: Int) -> String {
+        let query = model.search.trimmingCharacters(in: .whitespaces)
+        let scope = query.isEmpty ? model.period.longLabel : L("‘%@’ 검색", query)
+        return "\(scope) · " + L("요청 %@개", Fmt.number(count))
     }
 }
