@@ -149,6 +149,8 @@ The install options can also be changed inside the app.
 
 Documents, Desktop and Downloads are never scanned (macOS would show permission prompts).
 
+Sessions not driven by a person are treated as automated and hidden (Filter → **Show automated sessions too** shows them): helper calls made with `claude -p` (naming a chat or a branch, etc.), test-tool sessions (E2E etc.) run in temporary folders (`/tmp`, `/var/folders`), and scheduled tasks. Requests typed in apps that embed Claude Code through the Agent SDK (`sdk-ts`, `sdk-py`) count as your work.
+
 ### The archive
 
 - SQLite at `~/Library/Application Support/AIWorkLog/worklog.sqlite` with tables `sessions`, `prompts`, `notes`, `sources` (read positions) and `day_summaries`.
