@@ -4,6 +4,10 @@ import Foundation
 /// 빠진 열쇠와 빈자리(%@) 수가 다른 번역은 테스트(testEveryScreenTextHasTranslations)가 찾아 준다.
 enum Translations {
     static let en: [String: String] = [
+        "이걸내가-작업기록": "I-Did-That-Worklog",
+        "이걸내가에 관하여": "About I Did That?",
+        "AI와 함께한 일": "What I did with AI",
+        "Claude Code·Codex·LM Studio와 함께한 작업을 날짜와 프로젝트별로 모아 보는 맥 앱입니다. 요청, 답변, 고친 파일과 AI 요약을 돌아보며 내가 해낸 일을 발견하세요.": "A Mac app that gathers your work with Claude Code, Codex and LM Studio by date and project. Look back at prompts, replies, changed files and AI summaries to rediscover what you accomplished.",
         "업데이트를 확인하지 못했어요": "Could Not Check for Updates",
         "인터넷 연결을 확인하고 다시 시도해 주세요.": "Check your internet connection and try again.",
         "새 버전 %@이 있어요": "Version %@ Is Available",
@@ -15,7 +19,7 @@ enum Translations {
         "업데이트 확인 중…": "Checking for Updates…",
         "%@ 버전으로 업데이트…": "Update to Version %@…",
         "업데이트 확인…": "Check for Updates…",
-        "AI 작업일지": "AI Worklog",
+        "이걸내가": "I Did That?",
         "기록": "Records",
         "새로 고침": "Refresh",
         "이 기간 보고서 만들기": "Make Report for This Period",
@@ -41,7 +45,6 @@ enum Translations {
         "LM Studio (서버 꺼짐)": "LM Studio (server off)",
         "%@ (설치 안 됨)": "%@ (not installed)",
         "%@ 작업일지": "Worklog for %@",
-        "AI작업일지": "AI-Worklog",
         "%@ 작업 보고서": "Work Report: %@",
         "AI 작업 보고서": "AI Work Report",
         "AI작업보고서": "AI-Work-Report",
@@ -460,6 +463,10 @@ enum Translations {
     ]
 
     static let ja: [String: String] = [
+        "이걸내가-작업기록": "これ私が-作業記録",
+        "이걸내가에 관하여": "これ、私が？について",
+        "AI와 함께한 일": "AIと一緒にやったこと",
+        "Claude Code·Codex·LM Studio와 함께한 작업을 날짜와 프로젝트별로 모아 보는 맥 앱입니다. 요청, 답변, 고친 파일과 AI 요약을 돌아보며 내가 해낸 일을 발견하세요.": "Claude Code・Codex・LM Studioと一緒に行った作業を、日付とプロジェクト別にまとめるMacアプリです。依頼、回答、変更したファイル、AIの要約を振り返り、自分が成し遂げたことを再発見できます。",
         "업데이트를 확인하지 못했어요": "アップデートを確認できませんでした",
         "인터넷 연결을 확인하고 다시 시도해 주세요.": "インターネット接続を確認して、もう一度お試しください。",
         "새 버전 %@이 있어요": "新しいバージョン %@ があります",
@@ -471,7 +478,7 @@ enum Translations {
         "업데이트 확인 중…": "アップデートを確認中…",
         "%@ 버전으로 업데이트…": "バージョン %@ にアップデート…",
         "업데이트 확인…": "アップデートを確認…",
-        "AI 작업일지": "AI作業日誌",
+        "이걸내가": "これ、私が？",
         "기록": "記録",
         "새로 고침": "再読み込み",
         "이 기간 보고서 만들기": "この期間のレポートを作成",
@@ -497,7 +504,6 @@ enum Translations {
         "LM Studio (서버 꺼짐)": "LM Studio(サーバー停止中)",
         "%@ (설치 안 됨)": "%@(未インストール)",
         "%@ 작업일지": "%@ の作業日誌",
-        "AI작업일지": "AI作業日誌",
         "%@ 작업 보고서": "%@ の作業レポート",
         "AI 작업 보고서": "AI作業レポート",
         "AI작업보고서": "AI作業レポート",

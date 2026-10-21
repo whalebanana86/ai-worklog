@@ -19,7 +19,7 @@ DEMO_MATCH='AIWorkLogDemo\.app/Contents/MacOS/AIWorkLog'
 DEMO_PID=""
 
 demo_prepare() {
-  local src="build/AI 작업일지.app" stamp=build/demo/.prepared
+  local src="build/이걸내가.app" stamp=build/demo/.prepared
   [ -d "$src" ] || scripts/build_app.sh >/dev/null
   if [ -d "$DEMO_APP" ] && [ -f "$stamp" ] && [ -z "$(find "$src" -newer "$stamp" -print -quit)" ]; then return 0; fi
   demo_quit

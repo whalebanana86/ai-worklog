@@ -57,7 +57,7 @@ public enum WorkLogCommand {
             if args.contains("--ai") {
                 return summarize(group, sessions: snapshot.sessions, choice: value(after: "--ai"), store: loader.store)
             }
-            print(ReportBuilder.markdown(title: "AI 작업일지 · \(Fmt.fullDay(group.day))", entries: group.entries))
+            print(ReportBuilder.markdown(title: L("이걸내가") + " · " + Fmt.fullDay(group.day), entries: group.entries))
             return 0
         }
 

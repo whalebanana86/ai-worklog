@@ -401,9 +401,9 @@ final class WorkLogCoreTests: XCTestCase {
         var sync = AutoSync(home: root)
         sync.useLaunchctl = false
         XCTAssertFalse(sync.isEnabled)
-        try sync.enable(program: ["/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
+        try sync.enable(program: ["/Applications/이걸내가.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
         XCTAssertTrue(sync.isEnabled)
-        XCTAssertEqual(sync.registeredProgram, ["/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
+        XCTAssertEqual(sync.registeredProgram, ["/Applications/이걸내가.app/Contents/MacOS/AIWorkLog", "cli", "--quiet"])
         let plist = try XCTUnwrap(PropertyListSerialization.propertyList(from: Data(contentsOf: sync.agentURL), format: nil) as? [String: Any])
         XCTAssertEqual(plist["Label"] as? String, AutoSync.label)
         XCTAssertEqual(plist["StartInterval"] as? Int, 21_600)

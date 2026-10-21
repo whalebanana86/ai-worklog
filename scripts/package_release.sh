@@ -1,5 +1,5 @@
 #!/bin/bash
-# GitHub Releases 에 올릴 설치 파일을 만든다: build/release/AI-Worklog-<버전>-macOS.dmg / .zip
+# GitHub Releases 에 올릴 설치 파일을 만든다: build/release/Igeolnaega-<버전>-macOS.dmg / .zip
 #   scripts/package_release.sh 1.0.0
 # Apple 개발자 인증서가 있으면 서명·공증까지 한다 (없으면 임시 서명).
 #   SIGN_IDENTITY="Developer ID Application: 이름 (TEAMID)"   서명
@@ -9,10 +9,10 @@ cd "$(dirname "$0")/.."
 VERSION="${1:?버전을 주세요. 예: scripts/package_release.sh 1.0.0}"
 # 파일 이름과 Info.plist 에 그대로 들어가니 숫자.숫자.숫자 꼴만 받는다.
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "버전은 1.2.3 꼴로 주세요: $VERSION" >&2; exit 1; }
-NAME="AI 작업일지"
+NAME="이걸내가"
 APP="build/$NAME.app"
 OUT="build/release"
-BASE="AI-Worklog-$VERSION-macOS"
+BASE="Igeolnaega-$VERSION-macOS"
 
 # 두 아키텍처(Apple 실리콘·인텔)로 만들고, 만든 앱에만 버전을 적는다 (저장소의 Support/Info.plist 는 그대로).
 VERSION="$VERSION" UNIVERSAL=1 scripts/build_app.sh
@@ -45,7 +45,7 @@ ditto -c -k --keepParent "$APP" "$OUT/$BASE.zip"
 # DMG: 앱과 '응용 프로그램' 바로 가기를 나란히 두어 끌어다 놓으면 설치되게.
 cp -R "$APP" build/dmg/
 ln -s /Applications build/dmg/Applications
-hdiutil create -quiet -volname "AI Worklog" -srcfolder build/dmg -ov -format UDZO "$OUT/$BASE.dmg"
+hdiutil create -quiet -volname "이걸내가" -srcfolder build/dmg -ov -format UDZO "$OUT/$BASE.dmg"
 rm -rf build/dmg
 [ -n "${SIGN_IDENTITY:-}" ] && codesign --force --timestamp --sign "$SIGN_IDENTITY" "$OUT/$BASE.dmg"
 (cd "$OUT" && shasum -a 256 "$BASE.dmg" "$BASE.zip" > SHA256SUMS.txt)

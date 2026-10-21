@@ -1,13 +1,20 @@
-# AI 작업일지
+# 이걸내가 — AI와 함께한 일
 
-**한국어** · [English](README.en.md)
+<p align="center"><img src="docs/brand/app-icon.png" width="128" alt="이걸내가 앱 아이콘: 완료 체크가 담긴 말풍선"></p>
+
+**한국어** · [English](README.en.md) · [日本語](README.ja.md)
+
+> 아래 시연과 화면 예시는 이름 변경 전 버전으로 촬영되어 일부 화면에 이전 이름이 보일 수 있어요. 새 이름과 아이콘은 위와 같아요.
 
 <p align="center">
   <img src="docs/demo-ko.gif" width="900" alt="20초 시연: 한눈에 보기 → 기간 바꾸기 → 프로젝트의 AI 날짜별 요약 → 대화 → 스킬·규칙 → 검색">
   <br><sub>20초 시연 (<a href="docs/demo-ko.mp4">MP4 로 보기</a>) · 지어낸 예시 기록으로 찍었어요</sub>
 </p>
 
-내 맥에서 AI(Claude Code, Codex, LM Studio)와 함께 한 일을 **날짜별 일기장**처럼 모아 보여 주는 맥 앱이에요.
+**“내가 AI로 이런 작업을 했다고?”**
+
+이걸내가는 Claude Code·Codex·LM Studio와 함께한 작업을 날짜와 프로젝트별로 모아 보는 맥 앱이에요.
+보낸 요청, AI의 답변, 고친 파일과 AI 요약을 돌아보며 내가 해낸 일을 발견하세요.
 
 <p align="center">
   <a href="https://github.com/whalebanana86/ai-worklog/releases/latest"><b>⬇︎ 내려받기 (macOS 14+, Apple 실리콘·인텔)</b></a>
@@ -15,10 +22,9 @@
 
 ## 이 앱은 뭐예요?
 
-요즘은 컴퓨터에게 말로 일을 시킬 수 있어요. "로그인 버튼 고쳐 줘", "그래프 그려 줘" 하고 AI 에게 부탁하면 AI 가 대신 코드를 써 줘요.
-
-이 앱은 그렇게 **AI 와 나눈 이야기를 전부 모아서**, 날마다 "오늘 무엇을 했는지"를 짧게 정리해 보여 줘요.
-마치 선생님이 하루 동안 한 일을 알림장에 몇 줄로 적어 주는 것처럼요.
+흩어진 AI 작업 기록을 모아 **무슨 일을 했고, 어떤 결과가 남았는지** 보여 줘요.
+날짜별·프로젝트별로 돌아보고, 대화를 검색하고, 필요한 날의 작업을 보고서로 꺼낼 수 있어요.
+원본이 지워져도 이미 모아 둔 기록은 내 맥의 보관함에 남아요.
 
 ![프로젝트 화면: 날마다 AI 가 쓴 "이날 한 일" 요약](docs/screenshots/project.png)
 
@@ -40,15 +46,28 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
 
 하고 싶은 말은 하나예요. **"AI 로 뭔가 했는데, 결국 뭘 했는지"를 한눈에 알고 싶다!**
 
+## 이름과 언어
+
+| 화면 언어 | 앱 이름 | 부제 |
+|---|---|---|
+| 한국어 | 이걸내가 | AI와 함께한 일 |
+| English | I Did That? | What I did with AI |
+| 日本語 | これ、私が？ | AIと一緒にやったこと |
+
+이전 이름은 **AI 작업일지**예요. 기록과 설정은 그대로 이어집니다.
+새 릴리스의 파일 이름은 `Igeolnaega-<버전>-macOS.dmg`이며, 이전 릴리스는 `AI-Worklog-…` 이름을 사용해요.
+설치 스크립트는 새 앱을 확인한 다음 예전 이름의 앱을 휴지통으로 옮겨요.
+DMG로 직접 설치할 때는 새 앱을 응용 프로그램에 넣은 뒤 예전 **AI 작업일지** 앱을 휴지통으로 옮겨 주세요.
+
 ## 설치하는 방법
 
 ### 가장 쉬운 방법: 내려받기
 
-1. [Releases 페이지](https://github.com/whalebanana86/ai-worklog/releases/latest)에서 `AI-Worklog-…-macOS.dmg` 를 내려받아요.
-2. 내려받은 파일을 열고, **AI 작업일지** 아이콘을 옆의 **Applications(응용 프로그램)** 폴더로 끌어다 놓아요.
+1. [Releases 페이지](https://github.com/whalebanana86/ai-worklog/releases/latest)에서 `Igeolnaega-…-macOS.dmg` 를 내려받아요.
+2. 내려받은 파일을 열고, **이걸내가** 아이콘을 옆의 **Applications(응용 프로그램)** 폴더로 끌어다 놓아요.
 3. 응용 프로그램 폴더에서 앱을 열어요.
    - "확인할 수 없는 개발자" 같은 창이 뜨면 **시스템 설정 → 개인정보 보호 및 보안** 맨 아래의 **그래도 열기**를 눌러요. (Apple 공증을 받기 전 버전이라 처음 한 번만 그래요. 공증 받은 버전이면 바로 열려요.)
-   - 터미널이 익숙하면 `xattr -dr com.apple.quarantine "/Applications/AI 작업일지.app"` 한 줄로도 돼요.
+   - 터미널이 익숙하면 `xattr -dr com.apple.quarantine "/Applications/이걸내가.app"` 한 줄로도 돼요.
 4. 처음 열면 지금까지의 AI 기록을 한 번 다 읽어요(조금 걸려요). 지난 날짜 AI 요약을 한꺼번에 만들려면 **설정(⌘,) → 지금 모두 만들기**를 눌러요.
 
 ### 코드로 직접 만들어 설치하기
@@ -80,18 +99,18 @@ AI 에게 일을 많이 시키다 보면 이런 일이 생겨요.
    - 지난 날짜마다 "이날 한 일"을 AI 에게 한 번씩 요약받아 저장해요. 기록이 많으면 몇 분 걸려요. 한 번 만들어 두면 다시 만들지 않아서 AI 사용량을 아껴요.
 
    AI 요약을 미리 만들고 싶지 않으면 `scripts/build_app.sh --install --no-summary` 를 쓰면 돼요.
-4. **앱을 열어요.** Finder 에서 `홈 폴더 → 응용 프로그램 → AI 작업일지`를 더블클릭해요.
+4. **앱을 열어요.** Finder 에서 `홈 폴더 → 응용 프로그램 → 이걸내가`를 더블클릭해요.
 
 ### 앱에서 업데이트 확인
 
-앱 메뉴 **AI 작업일지 → 업데이트 확인…**에서 GitHub의 최신 정식 릴리스를 확인해요.
+앱 메뉴 **이걸내가 → 업데이트 확인…**에서 GitHub의 최신 정식 릴리스를 확인해요.
 새 버전이 있으면 **업데이트 다운로드**를 눌러 릴리스 페이지를 열고 DMG를 설치해요. 기존 기록은 유지돼요.
 앱을 시작할 때도 확인하며, 새 버전이 있으면 메뉴에 버전을 표시해요. 자동으로 앱을 덮어쓰지는 않아요.
 
 ### 새 버전으로 바꾸기 · 지우기
 
 - 새 버전: 내려받아 쓰면 새 DMG 로 앱을 바꿔 끼워요. 코드로 설치했으면 `ai-worklog` 폴더에서 `git pull` 한 다음 `scripts/build_app.sh --install` 을 다시 해요. 모아 둔 기록과 요약은 그대로 남아요.
-- 지우기: 앱(`AI 작업일지.app`)을 휴지통에 넣어요. 모아 둔 기록까지 지우려면 `~/Library/Application Support/AIWorkLog` 폴더도 지워요.
+- 지우기: 앱(`이걸내가.app`)을 휴지통에 넣어요. 모아 둔 기록까지 지우려면 `~/Library/Application Support/AIWorkLog` 폴더도 지워요.
 
 ## 쓰는 방법
 
@@ -160,7 +179,7 @@ AI 요약은 틀릴 수 있어요. 그래서 요약 상자 오른쪽 `…` 메�
 
 ### 앱 안에서 바꾸는 설정 (⌘,)
 
-설치할 때 고르던 옵션을 앱 안에서도 켜고 끌 수 있어요. 메뉴 막대의 **AI 작업일지 → 설정…** 이나 왼쪽 아래 톱니바퀴를 눌러요.
+설치할 때 고르던 옵션을 앱 안에서도 켜고 끌 수 있어요. 메뉴 막대의 **이걸내가 → 설정…** 이나 왼쪽 아래 톱니바퀴를 눌러요.
 
 | 설정 | 하는 일 | 설치 옵션으로는 |
 |---|---|---|
@@ -264,11 +283,11 @@ scripts/build_app.sh --remove-auto-sync     # 자동 보관 끄기
 설치한 앱 하나로 터미널 명령도 된다 (설치 스크립트·자동 보관이 이걸 쓴다):
 
 ```bash
-"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --quiet   # 보관함만 갱신
-"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16
-"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16 --ai claude   # 그날 프로젝트마다 AI 요약 (codex·lmstudio 도 됨)
-"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --summarize            # 아직 요약 없는 지난 날짜 모두 요약 (--dry-run: 몇 개인지만)
-"$HOME/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog" cli --auto-sync on        # 자동 보관 켜기 (off: 끄기, status: 상태)
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --quiet   # 보관함만 갱신
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16 --ai claude   # 그날 프로젝트마다 AI 요약 (codex·lmstudio 도 됨)
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --summarize            # 아직 요약 없는 지난 날짜 모두 요약 (--dry-run: 몇 개인지만)
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --auto-sync on        # 자동 보관 켜기 (off: 끄기, status: 상태)
 ```
 
 #### 가볍게 만든 방법 (2026-10-16 측정)

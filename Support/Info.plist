@@ -11,9 +11,9 @@
 		<string>ja</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>AI 작업일지</string>
+	<string>이걸내가</string>
 	<key>CFBundleName</key>
-	<string>AI 작업일지</string>
+	<string>이걸내가</string>
 	<key>CFBundleExecutable</key>
 	<string>AIWorkLog</string>
 	<key>CFBundleIdentifier</key>

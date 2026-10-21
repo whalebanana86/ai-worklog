@@ -1,5 +1,5 @@
 #!/bin/bash
-# "AI 작업일지.app" 을 만든다.
+# "이걸내가.app" 을 만든다.
 #   scripts/build_app.sh                         build/ 에 앱만 만들기
 #   scripts/build_app.sh --install               ~/Applications 에 설치하고 보관함을 미리 채우기 (+ 지난 날짜 AI 요약)
 #   scripts/build_app.sh --install --no-summary  AI 요약은 미리 만들지 않기 (앱에서 날짜를 볼 때 그날만 요약)
@@ -9,11 +9,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NAME="AI 작업일지"
+NAME="이걸내가"
 APP="build/$NAME.app"
 # Update the existing system-wide copy when present, so Finder does not keep opening an old app.
 INSTALL_DIR="$HOME/Applications"
-if [ -d "/Applications/$NAME.app" ]; then INSTALL_DIR="/Applications"; fi
+LEGACY_NAME="AI 작업일지"
+if [ -d "/Applications/$NAME.app" ] || [ -d "/Applications/$LEGACY_NAME.app" ]; then
+  INSTALL_DIR="/Applications"
+fi
 INSTALLED="$INSTALL_DIR/$NAME.app"
 AGENT_ID="local.aiworklog.sync"
 AGENT_PLIST="$HOME/Library/LaunchAgents/$AGENT_ID.plist"
@@ -29,6 +32,8 @@ remove_agent() {
 if [ "${1:-}" = "--remove-auto-sync" ]; then
   if [ -x "$INSTALLED/Contents/MacOS/AIWorkLog" ]; then
     "$INSTALLED/Contents/MacOS/AIWorkLog" cli --auto-sync off
+  elif [ -x "$INSTALL_DIR/$LEGACY_NAME.app/Contents/MacOS/AIWorkLog" ]; then
+    "$INSTALL_DIR/$LEGACY_NAME.app/Contents/MacOS/AIWorkLog" cli --auto-sync off
   else
     remove_agent
   fi
@@ -65,7 +70,7 @@ fi
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$(date +%Y%m%d%H%M%S)" "$APP/Contents/Info.plist"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-# 앱 이름을 언어마다 (AI 작업일지 / AI Worklog / AI作業日誌).
+# 현지화된 앱 이름: 이걸내가 / I Did That? / これ、私が？.
 cp -R Support/*.lproj "$APP/Contents/Resources/"
 # 내 맥에서만 쓰는 앱이라 개발자 인증서 없이 임시 서명한다.
 codesign --force --sign - "$APP" >/dev/null
@@ -82,7 +87,13 @@ for arg in "$@"; do
       pkill -x AIWorkLog 2>/dev/null || true
       rm -rf "$INSTALLED"
       cp -R "$APP" "$INSTALL_DIR/"
+      codesign --verify --deep --strict "$INSTALLED"
       echo "설치했어요: $INSTALLED ($VERSION)"
+      # Preserve an existing launchd setting, but update its executable path after the rename.
+      if [ -f "$AGENT_PLIST" ]; then
+        "$INSTALLED/Contents/MacOS/AIWorkLog" cli --auto-sync on
+      fi
+      swift scripts/retire_legacy_apps.swift "$INSTALLED"
       echo "보관함을 준비하는 중이에요 (처음 한 번은 기록 전체를 읽어요)…"
       "$INSTALLED/Contents/MacOS/AIWorkLog" cli --quiet
       # 지난 날짜 AI 요약을 처음 한 번 모두 만들어 보관함에 남긴다. 앱은 저장된 요약을 불러 보여 주기만 해서 토큰을 다시 쓰지 않는다.

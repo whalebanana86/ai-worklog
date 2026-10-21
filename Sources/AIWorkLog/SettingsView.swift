@@ -15,6 +15,18 @@ struct SettingsView: View {
         @Bindable var model = model
         Form {
             Section {
+                HStack(spacing: 12) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(L("이걸내가")).font(.headline)
+                        Text(L("AI와 함께한 일")).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            Section {
                 Picker(L("화면 언어"), selection: $model.language) {
                     ForEach(AppLanguage.allCases) { language in
                         Text(language.nativeName).tag(language)
@@ -118,8 +130,9 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .id(model.language)
-        .frame(width: 560)
-        .fixedSize(horizontal: false, vertical: true)
+        // The grouped Form scrolls within this viewport. Expanding to its full
+        // content height makes the settings window taller than a laptop screen.
+        .frame(width: 560, height: min(640, (NSScreen.main?.visibleFrame.height ?? 800) * 0.8))
         .onAppear { autoSync = AutoSync().isEnabled }
     }
 

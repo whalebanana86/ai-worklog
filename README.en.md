@@ -1,13 +1,20 @@
-# AI Worklog
+# I Did That? — What I did with AI
 
-[한국어](README.md) · **English**
+<p align="center"><img src="docs/brand/app-icon.png" width="128" alt="App icon: a speech bubble with a completion check"></p>
+
+[한국어](README.md) · **English** · [日本語](README.ja.md)
+
+> The demo and screenshots below were recorded before the rename; some screens show the previous name. The new name and icon are shown above.
 
 <p align="center">
   <img src="docs/demo-en.gif" width="900" alt="20-second demo: Overview → change period → AI daily summaries in a project → a conversation → Skills & Rules → search">
   <br><sub>20-second demo (<a href="docs/demo-en.mp4">watch as MP4</a>) · recorded with made-up sample data</sub>
 </p>
 
-A macOS app that collects what you did with AI coding tools — **Claude Code, Codex and LM Studio** — on your Mac, and shows it as a **day-by-day work log**.
+**“Wait, I did all that with AI?”**
+
+I Did That? gathers your work with **Claude Code, Codex and LM Studio** by date and project.
+Look back at prompts, replies, changed files and AI summaries to rediscover what you accomplished.
 
 <p align="center">
   <a href="https://github.com/whalebanana86/ai-worklog/releases/latest"><b>⬇︎ Download (macOS 14+, Apple silicon & Intel)</b></a>
@@ -21,7 +28,7 @@ When you hand a lot of work to an AI, a few things happen:
 2. **The records are long and scattered** — each tool keeps its history in a different place and format, often as huge machine-oriented logs.
 3. **The records disappear** — Claude Code deletes old conversations on its own, so last month's work can vanish.
 
-AI Worklog:
+**I Did That?**:
 
 - **gathers** those records in one place,
 - **archives** them on your Mac before they are deleted, and
@@ -31,15 +38,24 @@ AI Worklog:
 
 > All screenshots here use made-up sample data (a to-do app, a blog, a weather widget, a photo album and a portfolio site). Launch the app with `--demo` to see the same thing.
 
+## Name and existing installations
+
+The app is called **이걸내가** in Korean, **I Did That?** in English, and **これ、私が？** in Japanese.
+Previously called **AI Worklog / AI 작업일지**, it keeps the same archive and settings.
+The bundle filename is `이걸내가.app` in every language; Finder and app menus use the localized display name.
+New release files use `Igeolnaega-<version>-macOS`; older releases still use `AI-Worklog-…`.
+The install script retires the old branded app to the Trash after verifying the new app.
+For DMG installs, copy the new app into Applications, then move the old **AI Worklog / AI 작업일지** app to the Trash.
+
 ## Install
 
 ### Download (easiest)
 
-1. Download `AI-Worklog-…-macOS.dmg` from the [Releases page](https://github.com/whalebanana86/ai-worklog/releases/latest).
+1. Download `Igeolnaega-…-macOS.dmg` from the [Releases page](https://github.com/whalebanana86/ai-worklog/releases/latest).
 2. Open it and drag the app onto the **Applications** folder next to it.
 3. Open the app from Applications.
    - If macOS says it can't verify the developer, go to **System Settings → Privacy & Security** and click **Open Anyway** at the bottom. (Builds that aren't notarized yet need this once; notarized builds open right away.)
-   - Or, in Terminal: `xattr -dr com.apple.quarantine "/Applications/AI 작업일지.app"`
+   - Or, in Terminal: `xattr -dr com.apple.quarantine "/Applications/이걸내가.app"`
 4. The first launch reads all your AI records once, which takes a moment. To make AI summaries for all past days at once, open **Settings (⌘,) → Make All Now**.
 
 ### Build from source
@@ -183,7 +199,7 @@ Input per project and day: the human requests, the AI's final reply to each, and
 The installed app doubles as a CLI:
 
 ```bash
-APP="/Applications/AI 작업일지.app/Contents/MacOS/AIWorkLog"   # or ~/Applications
+APP="/Applications/이걸내가.app/Contents/MacOS/AIWorkLog"   # or ~/Applications
 "$APP" cli --quiet                 # update the archive
 "$APP" cli --day 2026-10-16        # Markdown report for a day
 "$APP" cli --day 2026-10-16 --ai claude   # AI summary per project for that day (codex, lmstudio too)
@@ -233,7 +249,7 @@ To sign with a Developer ID and notarize, add these repository secrets (**Settin
 
 ### Check for updates
 
-Choose **AI Worklog → Check for Updates…** to check the latest stable GitHub release.
+Choose **I Did That? → Check for Updates…** to check the latest stable GitHub release.
 When an update is available, **Download Update** opens its release page. Install the DMG to replace the app; your records are preserved.
 The app also checks at launch and shows the available version in the app menu.
 Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`.

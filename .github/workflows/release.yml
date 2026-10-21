@@ -87,23 +87,31 @@ jobs:
           if [ "$HAS_CERT" = "true" ]; then
             SIGNED="Signed with a Developer ID and notarized by Apple. / Developer ID 로 서명하고 Apple 공증을 받았어요."
           else
-            SIGNED="Not notarized yet: on first launch open **System Settings → Privacy & Security → Open Anyway**, or run \`xattr -dr com.apple.quarantine \"/Applications/AI 작업일지.app\"\`. / 아직 공증 전이라 처음 열 때 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 눌러 주세요."
+            SIGNED="Not notarized yet: on first launch open **System Settings → Privacy & Security → Open Anyway**, or run \`xattr -dr com.apple.quarantine \"/Applications/이걸내가.app\"\`. / 아직 공증 전이라 처음 열 때 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 눌러 주세요."
           fi
           cat > build/release/NOTES.md <<NOTES
+          **이걸내가 — AI와 함께한 일**
+          **I Did That? — What I did with AI**
+          **これ、私が？ — AIと一緒にやったこと**
+
           macOS 14+ · Apple silicon & Intel
 
-          1. Download **AI-Worklog-$VERSION-macOS.dmg** and drag the app to Applications. / DMG 를 열어 앱을 응용 프로그램 폴더로 끌어다 놓아요.
+          1. Download **Igeolnaega-$VERSION-macOS.dmg** and drag the app to Applications. / DMG 를 열어 앱을 응용 프로그램 폴더로 끌어다 놓아요.
           2. $SIGNED
           3. The first launch reads all your AI records once. Past-day AI summaries: **Settings → Make All Now**. / 처음 열 때 기록을 한 번 다 읽어요. 지난 날짜 AI 요약은 **설정 → 지금 모두 만들기**.
 
           See [README](https://github.com/${{ github.repository }}#readme) · [English README](https://github.com/${{ github.repository }}/blob/main/README.en.md)
           NOTES
           sed -i '' 's/^          //' build/release/NOTES.md
+          if [ -f "docs/releases/$VERSION.md" ]; then
+            cat "docs/releases/$VERSION.md" build/release/NOTES.md > build/release/NOTES.full.md
+            mv build/release/NOTES.full.md build/release/NOTES.md
+          fi
 
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ env.VERSION }}
-          name: AI Worklog ${{ env.VERSION }}
+          name: 이걸내가 / I Did That? ${{ env.VERSION }}
           body_path: build/release/NOTES.md
           files: |
             build/release/*.dmg

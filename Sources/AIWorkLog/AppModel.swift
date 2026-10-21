@@ -553,9 +553,9 @@ final class AppModel {
         let name = scope.map { "\($0) · " } ?? ""
         let summary = projectPath.flatMap { summaries[summaryKey(project: $0, day: day.day)] }
         // 한 식으로 이으면 오래된 컴파일러가 타입을 못 정해서 나눠 만든다.
-        let reportTitle: String = L("AI 작업일지") + " · " + name + Fmt.fullDay(day.day)
+        let reportTitle: String = L("이걸내가") + " · " + name + Fmt.fullDay(day.day)
         let scopePart: String = scope.map { "\($0)-" } ?? ""
-        let fileName: String = L("AI작업일지") + "-" + scopePart + Fmt.isoDay(day.day) + ".md"
+        let fileName: String = L("이걸내가-작업기록") + "-" + scopePart + Fmt.isoDay(day.day) + ".md"
         report = ReportDraft(
             title: name + L("%@ 작업일지", Fmt.fullDay(day.day)),
             markdown: ReportBuilder.markdown(title: reportTitle, entries: day.entries, summary: summary),

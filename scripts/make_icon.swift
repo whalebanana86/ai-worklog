@@ -1,5 +1,5 @@
 // 앱 아이콘(Support/AppIcon.icns)을 그린다.  사용: swift scripts/make_icon.swift <출력 폴더>
-// 남색 바탕 위에 일지 한 장, 그 위에 도구 색 막대 세 줄과 반짝이.
+// 파란 바탕, 크림색 말풍선, 완료 체크와 작은 놀람 표시.
 // 뒤에 scripts/compress_icon.py 로 256색으로 줄여 icns 로 묶는다 (build_app.sh 가 함께 부른다).
 import AppKit
 
@@ -10,70 +10,50 @@ func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> NSColor {
     NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
 }
 
+// 이걸내가: a speech bubble ("I did that?") with a confident completion mark.
+// Broad solid shapes stay readable in the Dock and at 16px; no lettering or AI sparkles.
 let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
     guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
 
-    // macOS 아이콘 격자: 1024 안에 824 크기 둥근 사각형.
-    let tile = CGRect(x: 100, y: 100, width: 824, height: 824)
-    let tilePath = CGPath(roundedRect: tile, cornerWidth: 186, cornerHeight: 186, transform: nil)
-
-    // 단색 남색 바탕. 그라데이션과 바깥 그림자는 256색으로 줄일 때 줄무늬·회색 테두리가 생겨서 뺐다
-    // (scripts/compress_icon.py 로 아이콘을 525KB → 50KB 안팎으로 줄인다).
-    ctx.addPath(tilePath)
-    ctx.setFillColor(color(0x22305A).cgColor)
-    ctx.fillPath()
-
-    // 일지 종이
-    let page = CGRect(x: 262, y: 214, width: 500, height: 600)
-    ctx.saveGState()
-    ctx.translateBy(x: page.midX, y: page.midY)
-    ctx.rotate(by: -0.06)
-    ctx.translateBy(x: -page.midX, y: -page.midY)
-    ctx.setShadow(offset: CGSize(width: 0, height: -10), blur: 24, color: color(0x000000, 0.4).cgColor)
-    let pagePath = CGPath(roundedRect: page, cornerWidth: 44, cornerHeight: 44, transform: nil)
-    ctx.addPath(pagePath)
-    ctx.setFillColor(color(0xFBF8F1).cgColor)
-    ctx.fillPath()
-    ctx.setShadow(offset: .zero, blur: 0, color: nil)
-
-    // 날짜 머리줄
-    ctx.setFillColor(color(0x1B2440, 0.85).cgColor)
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 322, y: 700, width: 170, height: 34), cornerWidth: 17, cornerHeight: 17, transform: nil))
-    ctx.fillPath()
-    ctx.setFillColor(color(0x1B2440, 0.2).cgColor)
-    ctx.addPath(CGPath(roundedRect: CGRect(x: 510, y: 700, width: 90, height: 34), cornerWidth: 17, cornerHeight: 17, transform: nil))
-    ctx.fillPath()
-
-    // 작업 막대: Codex 파랑, Claude Code 주황, LM Studio 청록
-    let bars: [(UInt32, CGFloat, CGFloat)] = [(0xEB6834, 600, 330), (0x2A78D6, 500, 250), (0xEB6834, 400, 290), (0x1BAF7A, 300, 190)]
-    for (hex, y, width) in bars {
-        ctx.setFillColor(color(0xE6E0D3).cgColor)
-        ctx.addPath(CGPath(roundedRect: CGRect(x: 322, y: y, width: 380, height: 44), cornerWidth: 22, cornerHeight: 22, transform: nil))
-        ctx.fillPath()
-        ctx.setFillColor(color(hex).cgColor)
-        ctx.addPath(CGPath(roundedRect: CGRect(x: 322, y: y, width: width, height: 44), cornerWidth: 22, cornerHeight: 22, transform: nil))
+    func roundRect(_ rect: CGRect, radius: CGFloat, fill: UInt32) {
+        ctx.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+        ctx.setFillColor(color(fill).cgColor)
         ctx.fillPath()
     }
-    ctx.restoreGState()
 
-    // 반짝이
-    func sparkle(center: CGPoint, radius: CGFloat, fill: NSColor) {
-        let path = CGMutablePath()
-        let waist = radius * 0.22
-        path.move(to: CGPoint(x: center.x, y: center.y + radius))
-        path.addQuadCurve(to: CGPoint(x: center.x + radius, y: center.y), control: CGPoint(x: center.x + waist, y: center.y + waist))
-        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y - radius), control: CGPoint(x: center.x + waist, y: center.y - waist))
-        path.addQuadCurve(to: CGPoint(x: center.x - radius, y: center.y), control: CGPoint(x: center.x - waist, y: center.y - waist))
-        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y + radius), control: CGPoint(x: center.x - waist, y: center.y + waist))
-        ctx.saveGState()
-        ctx.setShadow(offset: CGSize(width: 0, height: -4), blur: 14, color: color(0x000000, 0.3).cgColor)
-        ctx.addPath(path)
-        ctx.setFillColor(fill.cgColor)
-        ctx.fillPath()
-        ctx.restoreGState()
-    }
-    sparkle(center: CGPoint(x: 742, y: 780), radius: 118, fill: color(0xFFB547))
-    sparkle(center: CGPoint(x: 838, y: 640), radius: 50, fill: color(0xFFE2A8))
+    // Standard macOS icon inset, with a saturated blue tile.
+    roundRect(CGRect(x: 100, y: 100, width: 824, height: 824), radius: 186, fill: 0x3156E8)
+
+    // A warm paper speech bubble. The tail points back toward the person doing the work.
+    roundRect(CGRect(x: 232, y: 310, width: 560, height: 430), radius: 106, fill: 0xFFF8E8)
+    let tail = CGMutablePath()
+    tail.move(to: CGPoint(x: 325, y: 345))
+    tail.addLine(to: CGPoint(x: 325, y: 219))
+    tail.addQuadCurve(to: CGPoint(x: 355, y: 221), control: CGPoint(x: 325, y: 195))
+    tail.addLine(to: CGPoint(x: 492, y: 335))
+    tail.closeSubpath()
+    ctx.addPath(tail)
+    ctx.setFillColor(color(0xFFF8E8).cgColor)
+    ctx.fillPath()
+
+    // "I did it": a large, open check that survives small icon sizes.
+    let check = CGMutablePath()
+    check.move(to: CGPoint(x: 371, y: 523))
+    check.addLine(to: CGPoint(x: 466, y: 428))
+    check.addLine(to: CGPoint(x: 645, y: 613))
+    ctx.addPath(check)
+    ctx.setStrokeColor(color(0x2549D6).cgColor)
+    ctx.setLineWidth(66)
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+    ctx.strokePath()
+
+    // The small orange surprise badge is deliberately secondary to the check.
+    ctx.setFillColor(color(0xFF956E).cgColor)
+    ctx.fillEllipse(in: CGRect(x: 671, y: 652, width: 160, height: 160))
+    roundRect(CGRect(x: 738, y: 720, width: 26, height: 57), radius: 13, fill: 0x243B83)
+    ctx.setFillColor(color(0x243B83).cgColor)
+    ctx.fillEllipse(in: CGRect(x: 738, y: 684, width: 26, height: 26))
     return true
 }
 

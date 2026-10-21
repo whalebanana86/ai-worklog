@@ -25,7 +25,7 @@ struct AIWorkLogApp: App {
     var body: some Scene {
         // 메뉴 글자도 언어를 바꾸면 다시 만든다.
         let _ = model.language
-        Window(L("AI 작업일지"), id: "main") {
+        Window(L("이걸내가"), id: "main") {
             ContentView()
                 .environment(model)
                 .task {
@@ -47,8 +47,19 @@ struct AIWorkLogApp: App {
             SettingsView()
                 .environment(model)
         }
+        .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .appInfo) {
+                Button(L("이걸내가에 관하여")) {
+                    NSApp.orderFrontStandardAboutPanel(options: [
+                        .applicationName: L("이걸내가"),
+                        .applicationVersion: updater.currentVersion,
+                        .credits: NSAttributedString(string: L("AI와 함께한 일") + "\n\n" +
+                            L("Claude Code·Codex·LM Studio와 함께한 작업을 날짜와 프로젝트별로 모아 보는 맥 앱입니다. 요청, 답변, 고친 파일과 AI 요약을 돌아보며 내가 해낸 일을 발견하세요."))
+                    ])
+                }
+            }
             CommandGroup(after: .appInfo) {
                 Button {
                     if updater.available != nil { updater.showResult() }

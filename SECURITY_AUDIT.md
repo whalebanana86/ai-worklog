@@ -1,4 +1,4 @@
-# 보안 감사 보고서 (AI 작업일지)
+# 보안 감사 보고서 (이걸내가 · 이전 이름 AI 작업일지)
 
 - 감사한 때: 2026-10-21 · 브랜치 `security-audit` · 기준 커밋 `a0b667a` (v1.1.0)
 - 대상: `Sources/WorkLogCore`, `Sources/AIWorkLog`, `scripts/`, `.github/workflows/release.yml`, `Support/Info.plist`
