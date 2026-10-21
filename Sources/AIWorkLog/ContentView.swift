@@ -244,9 +244,26 @@ struct Sidebar: View {
             }
 
             Section(L("프로젝트")) {
-                ForEach(model.projects) { project in
+                ForEach(model.sidebarProjects) { project in
                     ProjectRow(project: project).tag(Screen.project(project.path))
                         .contextMenu { ProjectMenuItems(path: project.path) }
+                }
+                if !model.hiddenProjectPaths.isEmpty {
+                    Menu {
+                        ForEach(model.hiddenProjectPaths, id: \.self) { path in
+                            Button {
+                                model.restoreProject(path)
+                            } label: {
+                                Text(WorkSession.displayName(forPath: path) + " — " + Fmt.path(path))
+                            }
+                        }
+                        Divider()
+                        Button(L("모든 프로젝트 다시 표시")) { model.restoreAllProjects() }
+                    } label: {
+                        Label(L("숨긴 프로젝트 %@개", String(model.hiddenProjectPaths.count)), systemImage: "eye.slash")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .help(L("프로젝트를 선택하면 왼쪽 목록에 다시 표시해요"))
                 }
             }
         }

@@ -4,6 +4,13 @@ import Foundation
 /// 빠진 열쇠와 빈자리(%@) 수가 다른 번역은 테스트(testEveryScreenTextHasTranslations)가 찾아 준다.
 enum Translations {
     static let en: [String: String] = [
+        "왼쪽 프로젝트 목록에서 숨겼어요": "Hidden from the sidebar",
+        "프로젝트를 다시 표시해요": "Project is visible again",
+        "모든 프로젝트 다시 표시": "Show All Projects Again",
+        "숨긴 프로젝트 %@개": "Hidden Projects (%@)",
+        "프로젝트를 선택하면 왼쪽 목록에 다시 표시해요": "Select a project to show it in the sidebar again",
+        "왼쪽 목록에 다시 표시": "Show in Sidebar Again",
+        "왼쪽 목록에서 숨기기": "Hide from Sidebar",
         "이걸내가-작업기록": "I-Did-That-Worklog",
         "이걸내가에 관하여": "About I Did That?",
         "AI와 함께한 일": "What I did with AI",
@@ -463,6 +470,13 @@ enum Translations {
     ]
 
     static let ja: [String: String] = [
+        "왼쪽 프로젝트 목록에서 숨겼어요": "サイドバーのプロジェクト一覧で非表示にしました",
+        "프로젝트를 다시 표시해요": "プロジェクトを再表示しました",
+        "모든 프로젝트 다시 표시": "すべてのプロジェクトを再表示",
+        "숨긴 프로젝트 %@개": "非表示のプロジェクト（%@件）",
+        "프로젝트를 선택하면 왼쪽 목록에 다시 표시해요": "プロジェクトを選ぶとサイドバーに再表示します",
+        "왼쪽 목록에 다시 표시": "サイドバーに再表示",
+        "왼쪽 목록에서 숨기기": "サイドバーで非表示",
         "이걸내가-작업기록": "これ私が-作業記録",
         "이걸내가에 관하여": "これ、私が？について",
         "AI와 함께한 일": "AIと一緒にやったこと",

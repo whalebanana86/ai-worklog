@@ -166,6 +166,36 @@ final class AppModel {
         didSet { UserDefaults.standard.set(showInspector, forKey: "showInspector") }
     }
 
+    private var projectVisibility = ProjectVisibility(persists: !ProcessInfo.processInfo.arguments.contains("--demo"))
+
+    /// Only navigation rows are filtered. Reports, search and analytics keep every project.
+    var sidebarProjects: [ProjectSummary] { projects.filter { !projectVisibility.isHidden($0.path) } }
+    var hiddenProjectPaths: [String] {
+        projectVisibility.hiddenPaths.sorted {
+            let a = WorkSession.displayName(forPath: $0)
+            let b = WorkSession.displayName(forPath: $1)
+            return a == b ? $0 < $1 : a.localizedStandardCompare(b) == .orderedAscending
+        }
+    }
+
+    func isProjectHidden(_ path: String) -> Bool { projectVisibility.isHidden(path) }
+
+    func hideProject(_ projectPath: String) {
+        projectVisibility.setHidden(true, for: projectPath)
+        if screen == .project(projectPath) {
+            screen = .dashboard
+            path = []
+        }
+        flash(L("왼쪽 프로젝트 목록에서 숨겼어요"))
+    }
+
+    func restoreProject(_ projectPath: String) {
+        projectVisibility.setHidden(false, for: projectPath)
+        flash(L("프로젝트를 다시 표시해요"))
+    }
+
+    func restoreAllProjects() { projectVisibility.showAll() }
+
     var screen: Screen? = .dashboard
     var path: [SessionLink] = []
     var report: ReportDraft?

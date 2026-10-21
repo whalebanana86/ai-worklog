@@ -43,6 +43,12 @@ struct ProjectMenuItems: View {
             Button { model.reveal(path) } label: { Label(L("Finder 에서 열기"), systemImage: "folder") }
             Button { model.openTerminal(at: path) } label: { Label(L("터미널 열기"), systemImage: "terminal") }
             Button { model.copy(path, message: L("경로를 복사했어요")) } label: { Label(L("경로 복사"), systemImage: "doc.on.doc") }
+            Divider()
+        }
+        if model.isProjectHidden(path) {
+            Button { model.restoreProject(path) } label: { Label(L("왼쪽 목록에 다시 표시"), systemImage: "eye") }
+        } else {
+            Button { model.hideProject(path) } label: { Label(L("왼쪽 목록에서 숨기기"), systemImage: "eye.slash") }
         }
     }
 }

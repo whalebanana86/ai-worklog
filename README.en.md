@@ -253,3 +253,9 @@ Choose **I Did That? → Check for Updates…** to check the latest stable GitHu
 When an update is available, **Download Update** opens its release page. Install the DMG to replace the app; your records are preserved.
 The app also checks at launch and shows the available version in the app menu.
 Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`.
+
+### Hide projects from the sidebar
+
+Right-click a project and choose **Hide from Sidebar**. This preference persists across restarts.
+Use **Hidden Projects (N)** below the project list to restore an individual project or choose **Show All Projects Again**.
+Records, search results and statistics are preserved. Hiding the currently selected project returns to Overview.
