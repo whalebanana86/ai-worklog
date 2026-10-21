@@ -15,7 +15,7 @@ OUT="build/release"
 BASE="AI-Worklog-$VERSION-macOS"
 
 # 두 아키텍처(Apple 실리콘·인텔)로 만들고, 만든 앱에만 버전을 적는다 (저장소의 Support/Info.plist 는 그대로).
-UNIVERSAL=1 scripts/build_app.sh
+VERSION="$VERSION" UNIVERSAL=1 scripts/build_app.sh
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$(date +%Y%m%d%H%M)" "$APP/Contents/Info.plist"
 

@@ -4,6 +4,17 @@ import Foundation
 /// 빠진 열쇠와 빈자리(%@) 수가 다른 번역은 테스트(testEveryScreenTextHasTranslations)가 찾아 준다.
 enum Translations {
     static let en: [String: String] = [
+        "업데이트를 확인하지 못했어요": "Could Not Check for Updates",
+        "인터넷 연결을 확인하고 다시 시도해 주세요.": "Check your internet connection and try again.",
+        "새 버전 %@이 있어요": "Version %@ Is Available",
+        "현재 버전은 %@이에요. 릴리스 페이지에서 DMG를 내려받아 앱을 응용 프로그램 폴더로 옮겨 주세요. 기존 기록은 유지돼요.": "You are using version %@. Download the DMG from the release page and move the app to Applications. Your records are preserved.",
+        "업데이트 다운로드": "Download Update",
+        "나중에": "Later",
+        "최신 버전을 사용 중이에요": "You Are Up to Date",
+        "현재 버전: %@": "Current version: %@",
+        "업데이트 확인 중…": "Checking for Updates…",
+        "%@ 버전으로 업데이트…": "Update to Version %@…",
+        "업데이트 확인…": "Check for Updates…",
         "AI 작업일지": "AI Worklog",
         "기록": "Records",
         "새로 고침": "Refresh",
@@ -449,6 +460,17 @@ enum Translations {
     ]
 
     static let ja: [String: String] = [
+        "업데이트를 확인하지 못했어요": "アップデートを確認できませんでした",
+        "인터넷 연결을 확인하고 다시 시도해 주세요.": "インターネット接続を確認して、もう一度お試しください。",
+        "새 버전 %@이 있어요": "新しいバージョン %@ があります",
+        "현재 버전은 %@이에요. 릴리스 페이지에서 DMG를 내려받아 앱을 응용 프로그램 폴더로 옮겨 주세요. 기존 기록은 유지돼요.": "現在のバージョンは %@ です。リリースページからDMGをダウンロードし、アプリをアプリケーションフォルダに移動してください。記録は保持されます。",
+        "업데이트 다운로드": "アップデートをダウンロード",
+        "나중에": "後で",
+        "최신 버전을 사용 중이에요": "最新バージョンを使用しています",
+        "현재 버전: %@": "現在のバージョン: %@",
+        "업데이트 확인 중…": "アップデートを確認中…",
+        "%@ 버전으로 업데이트…": "バージョン %@ にアップデート…",
+        "업데이트 확인…": "アップデートを確認…",
         "AI 작업일지": "AI作業日誌",
         "기록": "記録",
         "새로 고침": "再読み込み",

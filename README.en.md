@@ -230,3 +230,10 @@ To sign with a Developer ID and notarize, add these repository secrets (**Settin
 - Cost is shown only for Claude Code sessions that record it; Codex shows token totals.
 - Changed line counts are estimated from edits and run a little high.
 - Gemini (Antigravity) logs are protobuf and not read yet; Ollama CLI history has no timestamps and is skipped.
+
+### Check for updates
+
+Choose **AI Worklog → Check for Updates…** to check the latest stable GitHub release.
+When an update is available, **Download Update** opens its release page. Install the DMG to replace the app; your records are preserved.
+The app also checks at launch and shows the available version in the app menu.
+Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`.

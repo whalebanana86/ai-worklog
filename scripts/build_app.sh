@@ -11,7 +11,10 @@ cd "$(dirname "$0")/.."
 
 NAME="AI 작업일지"
 APP="build/$NAME.app"
-INSTALLED="$HOME/Applications/$NAME.app"
+# Update the existing system-wide copy when present, so Finder does not keep opening an old app.
+INSTALL_DIR="$HOME/Applications"
+if [ -d "/Applications/$NAME.app" ]; then INSTALL_DIR="/Applications"; fi
+INSTALLED="$INSTALL_DIR/$NAME.app"
 AGENT_ID="local.aiworklog.sync"
 AGENT_PLIST="$HOME/Library/LaunchAgents/$AGENT_ID.plist"
 
@@ -52,6 +55,15 @@ cp "$BIN/AIWorkLog" "$APP/Contents/MacOS/AIWorkLog"
 # 디버그 기호를 지운다 (실행 파일 3.6MB → 1.5MB 안팎). 터미널 명령은 같은 실행 파일의 `cli` 모드라 따로 넣지 않는다.
 strip -x "$APP/Contents/MacOS/AIWorkLog"
 cp Support/Info.plist "$APP/Contents/Info.plist"
+# Local installs must report the source version too, not the template's 1.0.
+VERSION="${VERSION:-$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || true)}"
+VERSION="${VERSION#v}"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "버전을 확인할 수 없어요. VERSION=1.2.3 으로 지정해 주세요." >&2
+  exit 1
+fi
+plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
+plutil -replace CFBundleVersion -string "$(date +%Y%m%d%H%M%S)" "$APP/Contents/Info.plist"
 cp Support/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # 앱 이름을 언어마다 (AI 작업일지 / AI Worklog / AI作業日誌).
 cp -R Support/*.lproj "$APP/Contents/Resources/"
@@ -62,11 +74,15 @@ echo "만들었어요: $APP ($(du -sh "$APP" | cut -f1))"
 for arg in "$@"; do
   case "$arg" in
     --install)
-      mkdir -p "$HOME/Applications"
+      if [ ! -w "$INSTALL_DIR" ] && [ -d "$INSTALL_DIR" ]; then
+        echo "설치 폴더에 쓰기 권한이 없어요: $INSTALL_DIR" >&2
+        exit 1
+      fi
+      mkdir -p "$INSTALL_DIR"
       pkill -x AIWorkLog 2>/dev/null || true
       rm -rf "$INSTALLED"
-      cp -R "$APP" "$HOME/Applications/"
-      echo "설치했어요: ~/Applications/$NAME.app"
+      cp -R "$APP" "$INSTALL_DIR/"
+      echo "설치했어요: $INSTALLED ($VERSION)"
       echo "보관함을 준비하는 중이에요 (처음 한 번은 기록 전체를 읽어요)…"
       "$INSTALLED/Contents/MacOS/AIWorkLog" cli --quiet
       # 지난 날짜 AI 요약을 처음 한 번 모두 만들어 보관함에 남긴다. 앱은 저장된 요약을 불러 보여 주기만 해서 토큰을 다시 쓰지 않는다.

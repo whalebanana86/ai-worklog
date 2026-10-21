@@ -176,7 +176,7 @@ public enum AIConfigScanner {
     }
 
     private static func settingsItem(path: String, name: String) -> AIConfigItem? {
-        guard let data = FileManager.default.contents(atPath: path),
+        guard isRegularFile(path), let data = FileManager.default.contents(atPath: path),
               let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
         var lines: [String] = []
         if let hooks = o["hooks"] as? [String: Any], !hooks.isEmpty {
@@ -207,7 +207,7 @@ public enum AIConfigScanner {
     }
 
     private static func mcpItem(path: String, name: String) -> AIConfigItem? {
-        guard let data = FileManager.default.contents(atPath: path),
+        guard isRegularFile(path), let data = FileManager.default.contents(atPath: path),
               let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let servers = o["mcpServers"] as? [String: [String: Any]], !servers.isEmpty else { return nil }
         let lines = servers.keys.sorted().map { key -> String in
@@ -222,7 +222,7 @@ public enum AIConfigScanner {
 
     /// `npx skills` 가 남기는 skills-lock.json: 스킬 이름 → 받아 온 곳.
     private static func skillsLock(_ path: String) -> [String: String] {
-        guard let data = FileManager.default.contents(atPath: path),
+        guard isRegularFile(path), let data = FileManager.default.contents(atPath: path),
               let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let skills = o["skills"] as? [String: [String: Any]] else { return [:] }
         return skills.compactMapValues { $0["source"] as? String }
@@ -231,10 +231,15 @@ public enum AIConfigScanner {
     // MARK: - 파일 도우미
 
     private static func read(_ path: String) -> String? {
-        var isDir: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), !isDir.boolValue,
-              let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
+        guard isRegularFile(path), let text = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
         return text.count > maxBody ? String(text.prefix(maxBody)) + L("\n\n…(길어서 여기까지만)") : text
+    }
+
+    // Foundation on older SDKs can block opening a FIFO. Resolve ordinary links,
+    // then reject devices and pipes before any content read.
+    private static func isRegularFile(_ path: String) -> Bool {
+        let resolved = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        return (try? FileManager.default.attributesOfItem(atPath: resolved)[.type]) as? FileAttributeType == .typeRegular
     }
 
     private static func modified(_ path: String) -> Date {

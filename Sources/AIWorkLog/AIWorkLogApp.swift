@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct AIWorkLogApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = AppModel()
+    @State private var updater = AppUpdater()
 
     var body: some Scene {
         // 메뉴 글자도 언어를 바꾸면 다시 만든다.
@@ -30,6 +31,11 @@ struct AIWorkLogApp: App {
                 .task {
                     LaunchOptions.apply(to: model)
                     model.refresh()
+                }
+                .task {
+                    // Demo mode stays offline and never contacts the release API.
+                    guard !ProcessInfo.processInfo.arguments.contains("--demo") else { return }
+                    await updater.check(interactive: false)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     model.appBecameActive()
@@ -43,6 +49,17 @@ struct AIWorkLogApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appInfo) {
+                Button {
+                    if updater.available != nil { updater.showResult() }
+                    else { Task { await updater.check(interactive: true) } }
+                } label: {
+                    if updater.isChecking { Text(L("업데이트 확인 중…")) }
+                    else if let release = updater.available { Text(L("%@ 버전으로 업데이트…", release.version)) }
+                    else { Text(L("업데이트 확인…")) }
+                }
+                .disabled(updater.isChecking)
+            }
             CommandMenu(L("기록")) {
                 Button(L("새로 고침")) { model.refresh() }
                     .keyboardShortcut("r")
