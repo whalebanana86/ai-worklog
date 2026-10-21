@@ -149,6 +149,14 @@ final class AppModel {
         }
     }
 
+    /// 화면 모드. 고르면 바로 앱 전체에 쓰고 기억한다.
+    var appearance: AppAppearance = AppAppearance.saved {
+        didSet {
+            UserDefaults.standard.set(appearance.rawValue, forKey: AppAppearance.defaultsKey)
+            appearance.apply()
+        }
+    }
+
     // 시연 영상(--tour)에서 화면을 움직이는 데 쓴다.
     var tourExpand = false
     var tourScrollToTabs = 0

@@ -29,7 +29,7 @@ AI Worklog:
 
 ![Project view: an AI summary of what got done each day](docs/screenshots/en/project.png)
 
-> All screenshots here use made-up sample data (a to-do app, a blog, a weather widget and a photo album). Launch the app with `--demo` to see the same thing.
+> All screenshots here use made-up sample data (a to-do app, a blog, a weather widget, a photo album and a portfolio site). Launch the app with `--demo` to see the same thing.
 
 ## Install
 
@@ -79,6 +79,13 @@ This builds the app into `~/Applications`, reads your existing AI records into t
 3. The **AI Summary** box at the top of each card is a one-line headline plus the key results. Unfinished work is listed as "To do".
 4. Click **Show N requests** for details: what you asked → what the AI did → which files changed.
 5. Click a request to open the full conversation.
+6. The **inspector** on the right holds work time, sessions and requests, plus Open in Finder and Open Terminal. Toggle it with the toolbar button or `⌥⌘I`.
+
+AI summaries can be wrong, so the `…` menu on each summary box lets you:
+
+- **Edit…** — rewrite the headline and results yourself. The summary is marked "Edited".
+- **Revert to Previous Summary** — go back one version; choose it again to come forward.
+- Edited or reverted summaries are **never rewritten automatically** when new requests come in. Press the summary button when you want a new one.
 
 ![Session view: newest first, files changed per request, the AI's final reply in one line](docs/screenshots/en/session.png)
 
@@ -99,12 +106,15 @@ This builds the app into `~/Applications`, reads your existing AI records into t
 ### Other things
 
 - Pick a period at the top: **Today · 7 days · 30 days · 90 days · All**.
+- Every number on the Overview shows the **change from the period before** (e.g. ▲ 12% vs the 30 days before).
 - Type in the **search field** (top left) to filter requests and replies.
 - **Click a bar** in a chart to see only that day.
+- **Right-click** a session row or a project in the sidebar for Open session, Copy Request, Continue Working, Open Terminal, Show in Finder and more.
+- In By Date and All Requests, move with the **arrow keys** and press **Return** to open.
 - **Day Report** writes up a day's work in Markdown that you can edit, copy or save.
 - **Display language:** 한국어 · English · 日本語 (Settings → Language). New AI summaries are written in that language too.
-- Dark mode follows your Mac.
-- Shortcuts: `⌘1`–`⌘4` switch screens, `⌘R` refresh, `⌘E` report, `⌘,` settings, `⌘[` back.
+- Dark mode follows your Mac, or pin it to Light or Dark in **Settings → Appearance**.
+- Shortcuts: `⌘1`–`⌘4` switch screens, `⌘R` refresh, `⌘E` report, `⌥⌘I` inspector, `⌘,` settings, `⌘[` back.
 
 <p>
   <img src="docs/screenshots/en/skills.png" width="49%" alt="Skills & Rules">
@@ -118,6 +128,7 @@ The install options can also be changed inside the app.
 | Setting | What it does | Install option |
 |---|---|---|
 | Language | 한국어 / English / 日本語, applied immediately | — |
+| Appearance | System (follow your Mac) / Light / Dark, applied immediately | — |
 | Tool colors | The colors of Claude Code (orange), Codex (blue) and LM Studio (green) in the project list dots, charts and tags | — |
 | AI for summaries | Auto / Claude Code / Codex / LM Studio / Off. "Auto" picks the tool you've used most lately | — |
 | Past day summaries · **Make All Now** | Summarizes every past day that has no summary yet. You can stop it midway | `--install` (skip with `--no-summary`) |
@@ -190,7 +201,9 @@ scripts/make_screenshots.sh en      # README screenshots from sample data → do
 scripts/make_demo_video.sh en       # README demo video → docs/demo-en.gif/mp4 (records only the app window; needs ffmpeg)
 ```
 
-Launch options for testing: `--demo` (sample data; never touches your real records or calls an AI), `--lang ko|en|ja`, `--screen timeline|prompts|skills|project=<path>`, `--period today|week|month|quarter|all`, `--session <id>`, `--search <text>`, `--settings`, `--dark`, `--frame x,y,w,h`, `--no-ai`, `--tab worklog|sessions|setup|notes`, `--tools codex,lmStudio`, `--tool-colors claudeCode=8E44AD,codex=2E9E4F` (this run only, not saved), `--tour`.
+The capture scripts launch a copy of the app with its own bundle ID (`build/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`) and empty settings, then quit it. Your running copy stays open and its window and panel sizes are left alone. Set `FRAME=x,y,w,h` to move the window.
+
+Launch options for testing: `--demo` (sample data; never touches your real records or calls an AI), `--lang ko|en|ja`, `--screen timeline|prompts|skills|project=<path>`, `--period today|week|month|quarter|all`, `--session <id>`, `--search <text>`, `--settings`, `--dark` (this run only, not saved), `--frame x,y,w,h`, `--no-ai`, `--tab worklog|sessions|setup|notes`, `--tools codex,lmStudio`, `--tool-colors claudeCode=8E44AD,codex=2E9E4F` (this run only, not saved), `--tour`.
 
 Translations: UI strings are written in Korean and used as keys, e.g. `L("요청 %@개", n)`; English and Japanese live in `Sources/WorkLogCore/Translations.swift`. `swift test` fails if a string has no translation.
 

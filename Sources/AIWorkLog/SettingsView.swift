@@ -28,6 +28,21 @@ struct SettingsView: View {
             }
 
             Section {
+                Picker(L("화면 모드"), selection: $model.appearance) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.label).tag(appearance)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            } header: {
+                Text(L("화면 모드"))
+            } footer: {
+                Text(L("시스템을 고르면 맥 설정(시스템 설정 → 화면 모드)을 따라가요."))
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 ForEach(AITool.allCases) { tool in
                     LabeledContent(tool.displayName) {
                         HStack(spacing: 8) {

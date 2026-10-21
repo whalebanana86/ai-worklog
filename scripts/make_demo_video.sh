@@ -9,20 +9,14 @@ LANG_CODE="${1:-ko}"
 mkdir -p build docs
 [ -x build/record_window ] && [ build/record_window -nt scripts/record_window.swift ] || \
   swiftc -O -parse-as-library scripts/record_window.swift -o build/record_window
-[ -d "build/AI 작업일지.app" ] || scripts/build_app.sh >/dev/null
-
-pkill -x AIWorkLog 2>/dev/null || true
-sleep 0.5
-open -n "build/AI 작업일지.app" --args --demo --lang "$LANG_CODE" --tour --frame 60,0,1400,900
-PID=""
-for _ in $(seq 1 40); do
-  PID=$(pgrep -nx AIWorkLog || true)
-  if [ -n "$PID" ] && swift scripts/window_id.swift "$PID" >/dev/null 2>&1; then break; fi
-  sleep 0.5
-done
+# 앱 ID 만 바꾼 사본으로 녹화해서 켜 둔 앱은 그대로 둔다 (scripts/demo_app.sh). 창 자리는 FRAME=x,y,w,h 로 바꾼다.
+source scripts/demo_app.sh
+trap demo_finish EXIT
+demo_prepare
+demo_open --demo --lang "$LANG_CODE" --tour --frame "${FRAME:-60,0,1400,900}"
 RAW="build/demo-$LANG_CODE-raw.mp4"
-build/record_window "$PID" 24 "$RAW" >/dev/null
-pkill -x AIWorkLog 2>/dev/null || true
+build/record_window "$DEMO_PID" 24 "$RAW" >/dev/null
+demo_quit
 
 # 둘러보기는 창이 뜨고 1.5초 뒤 시작해 20초쯤 걸린다.
 ffmpeg -v error -y -ss 1.2 -t 21 -i "$RAW" -vf "scale=1400:-2:flags=lanczos" -c:v libx264 -crf 26 -preset slow -pix_fmt yuv420p -movflags +faststart "docs/demo-$LANG_CODE.mp4"

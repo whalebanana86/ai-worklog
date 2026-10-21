@@ -8,17 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
-        // 화면 확인용: --dark, --frame x,y,w,h
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("--dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
-        if let i = args.firstIndex(of: "--frame"), i + 1 < args.count {
-            let n = args[i + 1].split(separator: ",").compactMap { Double($0) }
-            if n.count == 4 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    NSApp.windows.first { $0.isVisible }?.setFrame(NSRect(x: n[0], y: n[1], width: n[2], height: n[3]), display: true)
-                }
-            }
-        }
+        // 설정에서 고른 화면 모드 (화면 확인용 --dark 는 이번에만 어둡게). --frame 은 창이 뜬 뒤 LaunchOptions 가 맞춘다.
+        AppAppearance.saved.apply()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -88,6 +79,26 @@ enum LaunchOptions {
             guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
             return args[i + 1]
         }
+        // --frame x,y,w,h: 창 자리와 크기. 터미널에서 띄우면 창이 실행 직후가 아니라 앱을 다시 열 때 생기기도 해서,
+        // 앱이 뜰 때가 아니라 창 내용이 처음 나타날 때 맞춘다. 아래에서 화면(--screen)을 바꾸기 전에 맞춰야
+        // 프로젝트 화면이 바뀐 너비로 처음 그려져 맨 위부터 보인다 (그린 뒤 넓히면 스크롤이 밀린다).
+        if let f = value("--frame") {
+            let n = f.split(separator: ",").compactMap { Double($0) }
+            if n.count == 4 {
+                let frame = NSRect(x: n[0], y: n[1], width: n[2], height: n[3])
+                func place() -> Bool {
+                    guard let window = NSApp.windows.first(where: { $0.isVisible }) else { return false }
+                    window.setFrame(frame, display: true)
+                    return true
+                }
+                if !place() {
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        _ = place()
+                    }
+                }
+            }
+        }
         if let p = value("--period"), let period = Period(rawValue: p) { model.period = period }
         switch value("--screen") {
         case "timeline": model.screen = .timeline
@@ -147,7 +158,8 @@ extension LaunchOptions {
         model.screen = .skills
         await wait(2.3)
         model.screen = .prompts
-        model.search = "widget"
+        // 시연 기록은 한국어판이 "위젯", 영어판이 "widget" 이라 화면 언어에 맞춰 찾는다.
+        model.search = Loc.language == .ko ? "위젯" : "widget"
         await wait(2.5)
         model.search = ""
         model.screen = .dashboard

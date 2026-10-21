@@ -416,7 +416,7 @@ final class WorkLogCoreTests: XCTestCase {
         let now = Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!
         let snapshot = DemoData.snapshot(now: now)
         let summaries = DemoData.summaries(now: now)
-        XCTAssertEqual(Set(snapshot.sessions.map(\.projectName)), ["todo-app", "my-blog", "weather-widget", "photo-album"])
+        XCTAssertEqual(Set(snapshot.sessions.map(\.projectName)), ["todo-app", "my-blog", "weather-widget", "photo-album", "portfolio-site"])
         // 시연 기록은 지난 날을 다시 요약하지 않는다.
         XCTAssertTrue(DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries, now: now).isEmpty)
         // 오늘은 요청 3개까지 요약돼 있고, 12분 전 요청 하나가 "30분 쉬면" 이어 쓰기를 기다린다.

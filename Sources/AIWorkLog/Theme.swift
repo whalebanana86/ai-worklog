@@ -58,6 +58,37 @@ extension AITool {
     static var chartOrder: [AITool] { [.codex, .claudeCode, .lmStudio] }
 }
 
+/// 화면 모드 (설정 → 화면 모드). 맥 설정을 따르거나 밝게·어둡게 고정한다. 설정 창·보고서 창까지 앱 전체에 쓴다.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    var id: String { rawValue }
+    static let defaultsKey = "appearance"
+
+    /// 설정에 저장된 값. 화면 확인용 `--dark` 로 띄우면 저장하지 않고 이번에만 어둡게.
+    static var saved: AppAppearance {
+        if ProcessInfo.processInfo.arguments.contains("--dark") { return .dark }
+        return UserDefaults.standard.string(forKey: defaultsKey).flatMap(AppAppearance.init(rawValue:)) ?? .system
+    }
+
+    var label: String {
+        switch self {
+        case .system: L("시스템")
+        case .light: L("밝게")
+        case .dark: L("어둡게")
+        }
+    }
+
+    @MainActor
+    func apply() {
+        NSApp.appearance = switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 /// 설정에서 고른 도구 색. 화면이 읽어 간 색은 바뀌면 알아서 다시 그려진다 (@Observable).
 @MainActor @Observable
 final class ToolColors {
