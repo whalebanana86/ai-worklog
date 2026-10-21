@@ -11,10 +11,7 @@ struct SkillsView: View {
         let scopes = projectScopes
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L("스킬·규칙")).font(.system(size: 28, weight: .bold))
-                    Text(summary(scopes: scopes, usage: usage)).font(.title3).foregroundStyle(.secondary)
-                }
+                PageHeader(title: L("스킬·규칙"), summary: summary(scopes: scopes, usage: usage))
 
                 Card(title: L("많이 쓴 스킬·명령"), subtitle: L("%@ · AI 가 부른 스킬과 내가 /이름 으로 부른 명령", model.period.longLabel)) {
                     if usage.isEmpty {

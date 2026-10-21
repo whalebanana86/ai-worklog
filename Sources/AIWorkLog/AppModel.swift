@@ -44,6 +44,26 @@ enum Period: String, CaseIterable, Identifiable {
         let start = calendar.date(byAdding: .day, value: -days, to: end)!
         return DateInterval(start: start, end: end)
     }
+
+    /// 견줄 바로 전 같은 길이 구간. 지금 구간은 아직 끝나지 않았으니, 끝도 "지금"에서 같은 날수만큼 뺀 때로 맞춘다
+    /// (오늘 오전과 어제 하루 전체를 견주지 않게).
+    func previousInterval(now: Date = Date(), calendar: Calendar = .current) -> DateInterval? {
+        guard let days, let current = interval(now: now, calendar: calendar),
+              let start = calendar.date(byAdding: .day, value: -days, to: current.start),
+              let end = calendar.date(byAdding: .day, value: -days, to: now) else { return nil }
+        return DateInterval(start: start, end: max(start, end))
+    }
+
+    /// "그 전 30일보다" 의 "그 전 30일".
+    var previousLabel: String? {
+        switch self {
+        case .today: return L("어제 이맘때")
+        case .week: return L("그 전 7일")
+        case .month: return L("그 전 30일")
+        case .quarter: return L("그 전 90일")
+        case .all: return nil
+        }
+    }
 }
 
 enum Screen: Hashable {
@@ -133,6 +153,11 @@ final class AppModel {
     var tourExpand = false
     var tourScrollToTabs = 0
 
+    /// 오른쪽 정보 패널(프로젝트·세션의 자세한 숫자). 연 상태를 기억한다.
+    var showInspector = UserDefaults.standard.object(forKey: "showInspector") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showInspector, forKey: "showInspector") }
+    }
+
     var screen: Screen? = .dashboard
     var path: [SessionLink] = []
     var report: ReportDraft?
@@ -144,6 +169,8 @@ final class AppModel {
     private(set) var days: [DayGroup] = []
     private(set) var projects: [ProjectSummary] = []
     private(set) var totals = WorkTotals(days: [], original: { _ in nil })
+    /// 바로 전 같은 기간의 합계 (견주기용). 전체 기간이면 nil.
+    private(set) var previousTotals: WorkTotals?
     private var byId: [String: WorkSession] = [:]
 
     // AI 날짜별 요약
@@ -266,6 +293,9 @@ final class AppModel {
         scoped = WorkLogAnalytics.clip(filtered, to: period.interval())
         days = WorkLogAnalytics.days(scoped)
         totals = WorkTotals(days: days, original: { [byId] in byId[$0] })
+        previousTotals = period.previousInterval().map { previous in
+            WorkTotals(days: WorkLogAnalytics.days(WorkLogAnalytics.clip(filtered, to: previous)), original: { [byId] in byId[$0] })
+        }
         // AI 메모는 Claude Code 가 남긴 것이라, 거르기에서 Claude Code 를 뺐으면 "메모만 남은" 프로젝트도 뺀다.
         projects = WorkLogAnalytics.projects(filtered, notesByRoot: query.isEmpty && tools.contains(.claudeCode) ? snapshot.notesByRoot : [:])
     }
@@ -413,6 +443,28 @@ final class AppModel {
         runSummaries(with: engine)
     }
 
+    /// 요약을 직접 고쳐 쓴다. 고친 요약은 새 요청이 생겨도 저절로 바꾸지 않는다.
+    func editSummary(key: String, headline: String, points: [String]) {
+        guard let current = summaries[key] else { return }
+        let headline = headline.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !headline.isEmpty else { return }
+        store(current.editing(headline: headline, points: points.filter { !$0.isEmpty }))
+        flash(L("요약을 고쳤어요"))
+    }
+
+    /// 바로 전 요약으로 되돌린다. 한 번 더 하면 다시 돌아온다.
+    func revertSummary(key: String) {
+        guard let reverted = summaries[key]?.revertedToPrevious() else { return }
+        store(reverted)
+        flash(L("전 요약으로 되돌렸어요"))
+    }
+
+    private func store(_ summary: DaySummary) {
+        summaries[summary.key] = summary
+        let store = loader.store
+        Task.detached(priority: .utility) { try? store?.saveSummary(summary) }
+    }
+
     /// 아직 요약이 없거나 마감할 지난 날짜 수 (설정 화면에 보여 줌).
     var pastBacklogCount: Int { DaySummarizer.backlog(sessions: snapshot.sessions, existing: summaries).count }
 
@@ -461,9 +513,10 @@ final class AppModel {
                 runningSummaries -= 1
                 switch outcome {
                 case .success(let result):
+                    // 있던 요약은 되돌리기용으로 남긴다.
                     let summary = DaySummary(project: job.project, day: job.day, digest: job.digest, engine: engine.displayName,
                                              headline: result.headline, points: result.points, promptCount: job.promptCount,
-                                             coveredUntil: job.coveredUntil)
+                                             coveredUntil: job.coveredUntil).replacing(summaries[job.key])
                     summaries[job.key] = summary
                     summaryJobs[job.key] = nil
                     if var input = summaryInputs[job.key] {

@@ -12,10 +12,16 @@ struct ContentView: View {
         @Bindable var model = model
         let _ = model.language
         NavigationSplitView {
+            // 사이드바·정보 패널 최대 너비는 고정값이다. 둘을 다 최대로 넓혀도 가장 작은 창(960pt)에 들어가게 정했다.
+            // 제한이 없으면 사이드바가 창을 다 덮어 정보 패널이 창 밖으로 잘리고, 화면 상태로 계산한 값을 넣으면
+            // 끄는 동안 다시 적용되며 AppKit 이 제약을 끝없이 다시 계산하다 멈춘다(크래시).
             Sidebar()
-                .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 320)
+                .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: Sidebar.maxWidth)
         } detail: {
+            // 본문은 최소 너비를 고집하지 않는다. 고집하면 패널을 넓히거나 창을 줄였을 때 분할 화면이 창보다 넓어져
+            // 사이드바 글자가 사라지고 오른쪽이 잘린다. 패널이 넓으면 본문이 그만큼 좁아질 뿐이다.
             DetailArea()
+                .frame(minWidth: 0, maxWidth: .infinity)
         }
         .searchable(text: $model.search, placement: .sidebar, prompt: L("요청·답변·프로젝트 검색"))
         // 언어를 바꾸면 화면 전체를 새로 그려 모든 글자를 새 언어로 다시 만든다. 차트 축의 날짜도 그 언어로.
@@ -65,12 +71,17 @@ struct ContentView: View {
 @MainActor
 struct DetailArea: View {
     @Environment(AppModel.self) private var model
+    /// 정보 패널 최대 너비 (사이드바 최대와 합쳐 가장 작은 창 960pt 안). 패널이 본문 안에 떠 있어서 최대가 없으면
+    /// 끌 때 창 밖으로 끝없이 커진다(실제로 수천 pt).
+    static let inspectorMax: CGFloat = 420
 
     var body: some View {
         // NavigationStack 대신 열린 세션 목록(model.path)을 직접 보고 화면을 바꾼다.
         // 목록 화면은 지우지 않고 숨겨만 둬서, 돌아오면 스크롤 위치가 그대로다.
         ZStack {
             screen
+                // 화면(보이든, 세션을 연 동안 숨겨 뒀든)이 자기 최소 너비를 고집하지 않고 받은 너비에 맞춰 배치를 바꾸게 한다.
+                .frame(minWidth: 0, maxWidth: .infinity)
                 .opacity(model.path.isEmpty ? 1 : 0)
                 .allowsHitTesting(model.path.isEmpty)
                 .accessibilityHidden(!model.path.isEmpty)
@@ -83,13 +94,32 @@ struct DetailArea: View {
                     }
                 }
                 .id(link)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(nsColor: .windowBackgroundColor))
             }
         }
         .navigationTitle(title.title)
         .navigationSubtitle(title.subtitle)
         .toolbar { toolbar }
+        .inspector(isPresented: Binding(get: { model.showInspector && hasInspector }, set: { model.showInspector = $0 })) {
+            inspector.inspectorColumnWidth(min: 230, ideal: 270, max: Self.inspectorMax)
+        }
+    }
+
+    /// 오른쪽 정보 패널: 세션을 열었으면 그 세션, 프로젝트 화면이면 그 프로젝트의 자세한 숫자.
+    @ViewBuilder
+    private var inspector: some View {
+        if let link = model.path.last, let session = model.session(link.id) {
+            SessionInspector(session: session)
+        } else if case .project(let path) = model.screen, let project = model.project(path) {
+            ProjectInspector(project: project)
+        }
+    }
+
+    private var hasInspector: Bool {
+        if let link = model.path.last { return model.session(link.id) != nil }
+        if case .project(let path) = model.screen { return model.project(path) != nil }
+        return false
     }
 
     @ToolbarContentBuilder
@@ -115,6 +145,7 @@ struct DetailArea: View {
             .help(L("볼 기간"))
         }
         ToolbarItemGroup(placement: .primaryAction) {
+            let filtering = model.tools.count < AITool.allCases.count || model.includeAutomated
             Menu {
                 ForEach(AITool.allCases) { tool in
                     Toggle(tool.displayName, isOn: Binding(
@@ -127,10 +158,10 @@ struct DetailArea: View {
                 Divider()
                 Toggle(L("자동 실행 세션도 보기"), isOn: $model.includeAutomated)
             } label: {
-                Label(L("필터"), systemImage: model.tools.count < AITool.allCases.count || model.includeAutomated
-                      ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                // 평소엔 테두리 없는 시스템 기호. 거르는 중이면 채운 기호로 바꿔, 색이 안 보이는 비활성 창에서도 알 수 있게 한다.
+                Label(L("필터"), systemImage: filtering ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
             }
-            .help(L("AI 도구 고르기"))
+            .help(filtering ? L("AI 도구 고르기 (거르는 중)") : L("AI 도구 고르기"))
 
             Button {
                 model.makePeriodReport()
@@ -151,6 +182,16 @@ struct DetailArea: View {
             }
             .help(L("기록 다시 읽기 (⌘R)"))
             .disabled(model.isLoading)
+
+            if hasInspector {
+                Button {
+                    model.showInspector.toggle()
+                } label: {
+                    Label(L("정보 패널"), systemImage: "sidebar.right")
+                }
+                .keyboardShortcut("i", modifiers: [.command, .option])
+                .help(L("자세한 숫자 보기·숨기기 (⌥⌘I)"))
+            }
         }
     }
 
@@ -172,13 +213,14 @@ struct DetailArea: View {
     }
 
     private var title: (title: String, subtitle: String) {
-        if let link = model.path.last, let s = model.session(link.id) { return (s.title, s.projectName) }
+        // 창 제목은 짧게(어디인지만): 세션 화면은 프로젝트 이름, 부제는 다른 화면처럼 기간. 긴 세션 제목은 본문 머리에 크게 쓴다.
+        if let link = model.path.last, let s = model.session(link.id) { return (s.projectName, model.period.longLabel) }
         switch model.screen ?? .dashboard {
         case .dashboard: return (L("한눈에 보기"), model.period.longLabel)
         case .timeline: return (L("날짜별 기록"), model.period.longLabel)
         case .prompts: return (L("모든 요청"), model.search.isEmpty ? L("%@ · %@개", model.period.longLabel, Fmt.number(model.totals.prompts)) : L("‘%@’ 검색", model.search))
         case .skills: return (L("스킬·규칙"), model.period.longLabel)
-        case .project(let path): return (WorkSession.displayName(forPath: path), Fmt.path(path))
+        case .project(let path): return (WorkSession.displayName(forPath: path), model.period.longLabel)
         }
     }
 }
@@ -186,6 +228,8 @@ struct DetailArea: View {
 @MainActor
 struct Sidebar: View {
     @Environment(AppModel.self) private var model
+    /// 사이드바 최대 너비 (정보 패널 최대와 합쳐 가장 작은 창 960pt 안).
+    static let maxWidth: CGFloat = 480
 
     var body: some View {
         @Bindable var model = model
@@ -202,6 +246,7 @@ struct Sidebar: View {
             Section(L("프로젝트")) {
                 ForEach(model.projects) { project in
                     ProjectRow(project: project).tag(Screen.project(project.path))
+                        .contextMenu { ProjectMenuItems(path: project.path) }
                 }
             }
         }
@@ -277,7 +322,8 @@ struct LoadingView: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "book.pages")
-                .font(.system(size: 40))
+                .font(.largeTitle)
+                .imageScale(.large)
                 .foregroundStyle(.secondary)
             Text(L("AI 작업 기록을 읽고 있어요")).font(.title3.weight(.semibold))
             Text(L("처음 한 번은 Claude Code·Codex 기록 전체를 읽어서 조금 걸려요.\n다음부터는 늘어난 부분만 읽어요."))
