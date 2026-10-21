@@ -128,10 +128,18 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     public var id: String { "\(tool.rawValue):\(sessionId)" }
 
     public var userPrompts: [PromptEntry] { prompts.filter { !$0.isCommand } }
-    /// 사람이 아니라 스크립트·예약 작업이 돌린 세션.
+    /// 사람이 아니라 스크립트·예약 작업·시험 도구가 돌린 세션.
     public var isAutomated: Bool {
+        if WorkSession.isScratchFolder(cwd) { return true }
         let real = userPrompts
         return !real.isEmpty && real.allSatisfy(\.isAutomated)
+    }
+
+    /// 임시 폴더(`/tmp`, `/var/folders` …). 시험 도구(E2E 등)가 잠깐 만들어 AI 를 돌리는 곳이라 작업 기록으로 치지 않는다.
+    static let scratchRoots = ["/tmp", "/private/tmp", "/var/folders", "/private/var/folders"]
+
+    public static func isScratchFolder(_ path: String) -> Bool {
+        !path.isEmpty && scratchRoots.contains { path == $0 || path.hasPrefix($0 + "/") }
     }
     public var totalTokens: Int { models.values.reduce(0) { $0 + $1.totalTokens } }
     public var finalAnswer: String? { prompts.last(where: { $0.reply != nil })?.reply }

@@ -11,7 +11,7 @@ struct ClaudeAccumulator: Codable, Hashable {
     }
 
     /// 해석 규칙이 바뀌면 올린다. 보관함에 남은 읽기 위치의 번호가 다르면 원본을 처음부터 다시 읽는다.
-    static let parserVersion = 3
+    static let parserVersion = 4
     var version = ClaudeAccumulator.parserVersion
     var sessionId: String
     var customTitle: String?
@@ -30,6 +30,8 @@ struct ClaudeAccumulator: Codable, Hashable {
     var approxAdded = 0
     var approxRemoved = 0
     var automated = false
+    /// 이 세션을 띄운 곳 (`cli` = 터미널, `sdk-cli` = `claude -p`, `sdk-ts`·`sdk-py` = Agent SDK 로 만든 앱).
+    var entrypoint: String?
     var skillsUsed: [String: Int] = [:]
     /// 프로세스(시작 시각)마다 비용이 0부터 다시 쌓이므로 시작 시각별 마지막 값을 둔다.
     var costParts: [String: CostPart] = [:]
@@ -38,7 +40,7 @@ struct ClaudeAccumulator: Codable, Hashable {
     /// 이어 읽을 때 거기서 다시 채운다 (`resumed(withArchived:)`). 같은 내용을 두 번 저장하지 않으려는 것.
     enum CodingKeys: String, CodingKey {
         case version, sessionId, customTitle, aiTitle, summaryTitle, cwd, gitBranch, clock, orphanReply, fileEdits,
-             toolUses, models, lastMessageId, approxAdded, approxRemoved, automated, skillsUsed, costParts
+             toolUses, models, lastMessageId, approxAdded, approxRemoved, automated, entrypoint, skillsUsed, costParts
     }
 
     static let orphanPlaceholder = "(요청 없이 시작된 세션)"
@@ -78,7 +80,11 @@ struct ClaudeAccumulator: Codable, Hashable {
     private mutating func noteContext(_ o: [String: Any]) {
         if cwd == nil, let c = o["cwd"] as? String, !c.isEmpty { cwd = c }
         if let b = o["gitBranch"] as? String, !b.isEmpty, b != "HEAD" { gitBranch = b }
-        if (o["entrypoint"] as? String)?.hasPrefix("sdk") == true { automated = true }
+        if let e = o["entrypoint"] as? String, !e.isEmpty {
+            if entrypoint == nil { entrypoint = e }
+            // `claude -p` 는 스크립트나 다른 앱의 보조 호출(대화 제목·브랜치 이름 짓기 등)이라 세션째 자동으로 본다.
+            if e == "sdk-cli" { automated = true }
+        }
         if let ts = o["timestamp"] as? String, let d = FastDate.parse(ts) { clock.tick(d) }
     }
 
@@ -123,7 +129,9 @@ struct ClaudeAccumulator: Codable, Hashable {
         var cleaned = ClaudeText.clean(text)
         if cleaned.isEmpty && images > 0 { cleaned = "[이미지 \(images)장]" }
         guard !cleaned.isEmpty else { return }
-        let isAuto = automated || (o["promptSource"] as? String) == "sdk"
+        // Agent SDK 로 Claude Code 를 품은 앱(데스크톱 GUI 등)은 사람이 그 앱에 쓴 글도 promptSource "sdk" 로 남긴다.
+        // 그런 앱에서는 사람 요청으로 세고, 터미널 세션에 프로그램이 끼워 넣은 글만 자동으로 본다.
+        let isAuto = automated || ((o["promptSource"] as? String) == "sdk" && !isAgentSDK)
         prompts.append(PromptEntry(date: date, text: cleaned.clipped(ClaudeAccumulator.promptLimit), isAutomated: isAuto))
     }
 
@@ -139,6 +147,9 @@ struct ClaudeAccumulator: Codable, Hashable {
         let date = (o["timestamp"] as? String).flatMap(FastDate.parse) ?? clock.last ?? Date()
         prompts.append(PromptEntry(date: date, text: cleaned.clipped(ClaudeAccumulator.promptLimit), isAutomated: automated))
     }
+
+    /// Agent SDK(sdk-ts, sdk-py …)로 띄운 세션. `sdk-cli`(`claude -p`)는 뺀다.
+    var isAgentSDK: Bool { entrypoint.map { $0.hasPrefix("sdk-") && $0 != "sdk-cli" } ?? false }
 
     private mutating func ingestAssistant(_ o: [String: Any]) {
         if (o["isSidechain"] as? Bool) == true { return }
