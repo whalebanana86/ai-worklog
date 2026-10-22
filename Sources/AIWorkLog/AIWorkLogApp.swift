@@ -36,6 +36,10 @@ struct AIWorkLogApp: App {
                     // Demo mode stays offline and never contacts the release API.
                     guard !ProcessInfo.processInfo.arguments.contains("--demo") else { return }
                     await updater.check(interactive: false)
+                    updater.readInstallationResult()
+                }
+                .sheet(isPresented: $updater.isPresented) {
+                    AppUpdateSheet(updater: updater, model: model)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     model.appBecameActive()
@@ -65,11 +69,12 @@ struct AIWorkLogApp: App {
                     if updater.available != nil { updater.showResult() }
                     else { Task { await updater.check(interactive: true) } }
                 } label: {
-                    if updater.isChecking { Text(L("업데이트 확인 중…")) }
+                    if updater.isInstalling { Text(L("업데이트 설치 중…")) }
+                    else if updater.isChecking { Text(L("업데이트 확인 중…")) }
                     else if let release = updater.available { Text(L("%@ 버전으로 업데이트…", release.version)) }
                     else { Text(L("업데이트 확인…")) }
                 }
-                .disabled(updater.isChecking)
+                .disabled(updater.isChecking || updater.isInstalling)
             }
             CommandMenu(L("기록")) {
                 Button(L("새로 고침")) { model.refresh() }

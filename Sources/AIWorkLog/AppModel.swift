@@ -241,6 +241,8 @@ final class AppModel {
     @ObservationIgnored private var runningSummaries = 0
     @ObservationIgnored private var enginesCheckedAt: Date?
 
+    var canInstallAppUpdate: Bool { !isLoading && runningSummaries == 0 && backlogProgress == nil && report == nil }
+
     private struct PendingSummary {
         var key: String
         var project: String

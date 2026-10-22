@@ -250,7 +250,10 @@ To sign with a Developer ID and notarize, add these repository secrets (**Settin
 ### Check for updates
 
 Choose **I Did That? → Check for Updates…** to check the latest stable GitHub release.
-When an update is available, **Download Update** opens its release page. Install the DMG to replace the app; your records are preserved.
+When an update is available, choose **Install and Restart**. The app downloads the release-bound ZIP, verifies GitHub's SHA-256 digest, code signature, app identity, version and compatibility, then replaces itself and restarts.
+Records and preferences stay in place. Replacement or restart-request failures restore the previous app; a successful restart request moves the previous app to the Trash.
+Finish record loading, AI summaries and report editing before installing. Read-only install locations or releases without a verifiable ZIP use **Open Download Page** for manual installation.
+The app checks at launch, but installation requires clicking the install button. Versions that only opened a download page need one manual upgrade to acquire this installer.
 The app also checks at launch and shows the available version in the app menu.
 Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`.
 

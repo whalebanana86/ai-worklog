@@ -33,4 +33,22 @@ final class AppReleaseTests: XCTestCase {
             XCTAssertFalse(try release(url: url).isStable)
         }
     }
+    func testInstallerAssetIsPinnedToReleaseAndRequiresDigest() throws {
+        func asset(_ url: String, _ digest: String?) throws -> AppRelease {
+            var item: [String: Any] = ["name": "Igeolnaega-1.6.0-macOS.zip", "size": 123, "browser_download_url": url]
+            if let digest { item["digest"] = digest }
+            let data = try JSONSerialization.data(withJSONObject: [
+                "tag_name": "v1.6.0", "html_url": "https://github.com/whalebanana86/ai-worklog/releases/tag/v1.6.0",
+                "draft": false, "prerelease": false, "assets": [item]
+            ])
+            return try JSONDecoder().decode(AppRelease.self, from: data)
+        }
+        let url = "https://github.com/whalebanana86/ai-worklog/releases/download/v1.6.0/Igeolnaega-1.6.0-macOS.zip"
+        let digest = "sha256:" + String(repeating: "a", count: 64)
+        XCTAssertNotNil(try asset(url, digest).updateAsset)
+        XCTAssertNil(try asset(url, nil).updateAsset)
+        XCTAssertNil(try asset(url.replacingOccurrences(of: "download/v1.6.0", with: "download/v1.5.0"), digest).updateAsset)
+        XCTAssertNil(try asset(url.replacingOccurrences(of: "github.com", with: "example.com"), digest).updateAsset)
+    }
+
 }
