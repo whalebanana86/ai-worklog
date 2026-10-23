@@ -24,7 +24,7 @@ final class SummaryEditTests: XCTestCase {
     private func dayGroup(_ dates: [Date]) -> DayGroup {
         let prompts = dates.enumerated().map { PromptEntry(date: $1, text: "요청 \($0)") }
         let session = WorkSession(tool: .claudeCode, sessionId: "P", title: "t", cwd: "/p", projectPath: "/p",
-                                  start: dates[0], end: dates[dates.count - 1], activeSeconds: 60, prompts: prompts)
+                                  start: dates[0], end: dates[dates.count - 1], prompts: prompts)
         return DayGroup(day: Calendar.current.startOfDay(for: dates[0]), entries: [DayEntry(session: session, prompts: prompts)])
     }
 

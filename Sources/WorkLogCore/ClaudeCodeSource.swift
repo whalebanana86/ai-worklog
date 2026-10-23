@@ -11,7 +11,7 @@ struct ClaudeAccumulator: Codable, Hashable {
     }
 
     /// 해석 규칙이 바뀌면 올린다. 보관함에 남은 읽기 위치의 번호가 다르면 원본을 처음부터 다시 읽는다.
-    static let parserVersion = 4
+    static let parserVersion = 5
     var version = ClaudeAccumulator.parserVersion
     var sessionId: String
     var customTitle: String?
@@ -20,6 +20,11 @@ struct ClaudeAccumulator: Codable, Hashable {
     var cwd: String?
     var gitBranch: String?
     var clock = ActiveClock()
+    /// AI 가 일한 구간 (응답마다 남는 걸린 시간을 실제 기록과 맞춘 것).
+    var spans: [WorkSpan] = []
+    /// 마지막 응답이 끝난 뒤 기록이 이어진 구간들. 다음 응답의 걸린 시간을 자르는 데 쓰고 나면 비운다.
+    var activity: [WorkSpan] = []
+    var lastTurnEnd: Date?
     var prompts: [PromptEntry] = []
     /// 요청 없이 시작된 세션(예약 작업 등)의 마지막 답변.
     var orphanReply: String?
@@ -39,8 +44,9 @@ struct ClaudeAccumulator: Codable, Hashable {
     /// 보관함에 읽기 상태를 남길 때 요청 목록(`prompts`)은 뺀다. 요청은 보관함의 prompts 표에 이미 있어서,
     /// 이어 읽을 때 거기서 다시 채운다 (`resumed(withArchived:)`). 같은 내용을 두 번 저장하지 않으려는 것.
     enum CodingKeys: String, CodingKey {
-        case version, sessionId, customTitle, aiTitle, summaryTitle, cwd, gitBranch, clock, orphanReply, fileEdits,
-             toolUses, models, lastMessageId, approxAdded, approxRemoved, automated, entrypoint, skillsUsed, costParts
+        case version, sessionId, customTitle, aiTitle, summaryTitle, cwd, gitBranch, clock, spans, activity, lastTurnEnd,
+             orphanReply, fileEdits, toolUses, models, lastMessageId, approxAdded, approxRemoved, automated, entrypoint,
+             skillsUsed, costParts
     }
 
     static let orphanPlaceholder = "(요청 없이 시작된 세션)"
@@ -65,6 +71,10 @@ struct ClaudeAccumulator: Codable, Hashable {
 
     mutating func ingest(_ o: [String: Any]) {
         guard let type = o["type"] as? String else { return }
+        // 응답 하나가 진행되는 동안 기록이 어디까지 이어졌는지 (도구 실행·진행 표시 줄까지).
+        if (o["isSidechain"] as? Bool) != true, let ts = o["timestamp"] as? String, let d = FastDate.parse(ts) {
+            activity.extend(to: d)
+        }
         switch type {
         case "user": ingestUser(o)
         case "assistant": ingestAssistant(o)
@@ -73,8 +83,26 @@ struct ClaudeAccumulator: Codable, Hashable {
         case "summary": if summaryTitle == nil { summaryTitle = o["summary"] as? String }
         case "cost-state": ingestCost(o)
         case "attachment": ingestQueued(o)
+        case "system": if (o["subtype"] as? String) == "turn_duration" { ingestTurn(o) }
         default: break
         }
+    }
+
+    /// 응답 하나가 끝날 때 Claude Code 가 남기는 걸린 시간 (화면의 "Churned for 1m 46s").
+    /// 가끔 앞선 응답 몇 개를 한데 묶어 재거나 며칠 놓아둔 시간까지 들어가 있어서, 그대로 쓰지 않는다:
+    /// 앞 응답이 끝난 뒤부터만 보고, 그 안에서도 기록이 10분 넘게 끊긴 곳(허락을 기다리며 자리를 비운 때 등)은 뺀다.
+    private mutating func ingestTurn(_ o: [String: Any]) {
+        guard (o["isSidechain"] as? Bool) != true,
+              let end = (o["timestamp"] as? String).flatMap(FastDate.parse) else { return }
+        let seconds = Double(Self.int(o["durationMs"])) / 1000
+        guard seconds > 0 else { return }
+        var start = end.addingTimeInterval(-seconds)
+        if let lastTurnEnd, lastTurnEnd > start { start = lastTurnEnd }
+        for part in activity where part.end > start && part.start < end {
+            spans.append(WorkSpan(start: max(part.start, start), end: min(part.end, end)))
+        }
+        lastTurnEnd = max(lastTurnEnd ?? end, end)
+        activity.removeAll { $0.end <= end }
     }
 
     private mutating func noteContext(_ o: [String: Any]) {
@@ -270,7 +298,6 @@ struct ClaudeAccumulator: Codable, Hashable {
             gitBranch: gitBranch,
             start: start,
             end: end,
-            activeSeconds: clock.seconds,
             prompts: prompts,
             files: fileEdits.map { FileTouch(path: $0.key, edits: $0.value) }.sorted { $0.edits == $1.edits ? $0.path < $1.path : $0.edits > $1.edits },
             toolUses: toolUses,
@@ -279,6 +306,7 @@ struct ClaudeAccumulator: Codable, Hashable {
             sourcePath: sourcePath,
             hasTranscript: true
         )
+        session.spans = spans
         session.skillsUsed = skillsUsed
         if !costParts.isEmpty {
             session.costUSD = costParts.values.reduce(0) { $0 + $1.costUSD }
@@ -432,8 +460,6 @@ public struct ClaudeCodeSource {
             let real = prompts.filter { !$0.isCommand }
             // /status, /usage 만 치고 나간 세션은 작업이 아니다.
             guard let first = real.first, let start = prompts.first?.date, let end = prompts.last?.date else { return nil }
-            var clock = ActiveClock()
-            for p in prompts { clock.tick(p.date) }
             return WorkSession(
                 tool: .claudeCode,
                 sessionId: sid,
@@ -442,7 +468,6 @@ public struct ClaudeCodeSource {
                 projectPath: ProjectResolver.resolve(cwd: bucket.project, touched: [:], prompts: real),
                 start: start,
                 end: end,
-                activeSeconds: clock.seconds,
                 prompts: prompts.filter { !$0.isCommand || $0.text.contains(" ") },
                 hasTranscript: false
             )

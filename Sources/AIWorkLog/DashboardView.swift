@@ -57,7 +57,7 @@ struct DashboardView: View {
         let p = model.previousTotals
         func trend(_ now: Double, _ before: Double?) -> String? { Trend.text(now, before, versus: model.period.previousLabel) }
         return TileRows(tiles: [
-            StatTile(label: L("작업 시간"), value: Fmt.duration(t.activeSeconds), caption: L("10분 넘게 쉰 시간은 뺐어요"), symbol: "clock",
+            StatTile(label: L("작업 시간"), value: Fmt.duration(t.activeSeconds), caption: L("AI 가 일한 시간 포함"), symbol: "clock",
                      trend: trend(t.activeSeconds, p?.activeSeconds)),
             StatTile(label: L("요청"), value: Fmt.number(t.prompts), caption: L("세션 %@개", Fmt.number(t.sessions)), symbol: "text.bubble",
                      trend: trend(Double(t.prompts), p.map { Double($0.prompts) })),

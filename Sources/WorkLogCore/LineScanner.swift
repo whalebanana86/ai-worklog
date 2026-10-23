@@ -111,6 +111,43 @@ struct ActiveClock: Codable, Hashable {
         seconds += gap <= ActiveClock.idleGap ? gap : ActiveClock.minimumBurst
         last = date
     }
+
+    /// 요청 시각(점)과 AI 가 일한 구간을 시간순으로 이어 붙여 잰다. 사이가 10분 안이면 그 틈(답을 읽고 다시 묻는 시간)까지 치고,
+    /// 더 벌어지면 쉰 것으로 보고 끊는다. 이어진 덩어리마다 1분을 더한다 (첫 요청을 쓰는 시간).
+    /// 구간이 없으면 요청 시각만으로 `tick` 을 차례로 부른 것과 같다.
+    static func seconds(points: [Date], spans: [WorkSpan]) -> Double {
+        let parts = (points.map { WorkSpan(start: $0, end: $0) } + spans).sorted { $0.start < $1.start }
+        var total = 0.0
+        var current: WorkSpan?
+        for part in parts {
+            if var c = current, part.start.timeIntervalSince(c.end) <= idleGap {
+                c.end = max(c.end, part.end)
+                current = c
+            } else {
+                if let c = current { total += minimumBurst + c.end.timeIntervalSince(c.start) }
+                current = part
+            }
+        }
+        if let c = current { total += minimumBurst + c.end.timeIntervalSince(c.start) }
+        return total
+    }
+}
+
+extension [WorkSpan] {
+    /// 기록이 찍힌 시각 하나를 붙인다. 마지막 구간과 10분 안이면 그 구간을 늘리고, 더 벌어졌으면 새 구간을 연다.
+    /// 시각이 뒤섞여 앞선 시각이 오면 무시한다.
+    mutating func extend(to date: Date) {
+        guard let last else {
+            append(WorkSpan(start: date, end: date))
+            return
+        }
+        guard date > last.end else { return }
+        if date.timeIntervalSince(last.end) <= ActiveClock.idleGap {
+            self[count - 1].end = date
+        } else {
+            append(WorkSpan(start: date, end: date))
+        }
+    }
 }
 
 extension String {

@@ -5,15 +5,23 @@ public struct DayEntry: Hashable, Sendable, Identifiable {
     public var session: WorkSession
     /// 그날 보낸 요청만.
     public var prompts: [PromptEntry]
+    /// 그날 보낸 요청으로 AI 가 일한 구간.
+    public var spans: [WorkSpan]
     /// 며칠에 걸친 세션은 날마다 한 줄씩 생기므로 날짜까지 붙여야 겹치지 않는다.
     public var id: String { "\(session.id)@\(Int(Calendar.current.startOfDay(for: firstDate).timeIntervalSince1970))" }
 
-    public init(session: WorkSession, prompts: [PromptEntry]) {
+    public init(session: WorkSession, prompts: [PromptEntry], spans: [WorkSpan] = []) {
         self.session = session
         self.prompts = prompts
+        self.spans = spans
     }
 
     public var userPrompts: [PromptEntry] { prompts.filter { !$0.isCommand } }
+    /// 이날 작업 시간: 요청 시각과 AI 가 일한 구간을 이어 재고, 10분 넘게 빈 곳은 뺀다 (`ActiveClock.seconds`).
+    public var activeSeconds: Double {
+        if prompts.isEmpty && spans.isEmpty { return ActiveClock.seconds(points: [session.start, session.end], spans: []) }
+        return ActiveClock.seconds(points: prompts.map(\.date), spans: spans)
+    }
     /// 이날 요청들로 고친 파일.
     public var files: [String] {
         var seen = Set<String>()
@@ -31,16 +39,23 @@ public struct DayGroup: Hashable, Sendable, Identifiable {
     public var id: Date { day }
 
     public var promptCount: Int { entries.reduce(0) { $0 + $1.userPrompts.count } }
-    /// 그날 요청 시각들로 잰 작업 시간.
-    public var activeSeconds: Double {
-        var total = 0.0
-        for entry in entries {
-            var clock = ActiveClock()
-            for p in entry.prompts { clock.tick(p.date) }
-            if entry.prompts.isEmpty { clock.tick(entry.session.start); clock.tick(entry.session.end) }
-            total += clock.seconds
+    /// 그날 작업 시간. 같은 때 돌린 세션은 세션마다 따로 잰 값을 더한다.
+    public var activeSeconds: Double { entries.reduce(0) { $0 + $1.activeSeconds } }
+}
+
+extension WorkSession {
+    /// AI 가 일한 구간마다, 그 일을 시킨 요청의 시각 (구간이 시작될 때 마지막으로 보낸 요청).
+    /// 날짜·기간은 요청 시각으로 나누므로, 자정을 넘긴 작업도 요청한 날에 센다.
+    func spansByRequest() -> [(span: WorkSpan, request: Date)] {
+        let dates = prompts.map(\.date).sorted()
+        guard !dates.isEmpty else { return spans.map { ($0, start) } }
+        var i = 0
+        return spans.sorted { $0.start < $1.start }.map { span in
+            // 응답 시간은 요청 줄보다 몇 밀리초 앞에서 시작하기도 한다.
+            let started = span.start.addingTimeInterval(5)
+            while i + 1 < dates.count, dates[i + 1] <= started { i += 1 }
+            return (span, dates[i])
         }
-        return total
     }
 }
 
@@ -95,11 +110,13 @@ public enum WorkLogAnalytics {
         for session in sessions {
             let byDay = Dictionary(grouping: session.prompts) { calendar.startOfDay(for: $0.date) }
             if byDay.isEmpty {
-                buckets[calendar.startOfDay(for: session.start), default: []].append(DayEntry(session: session, prompts: []))
+                buckets[calendar.startOfDay(for: session.start), default: []].append(DayEntry(session: session, prompts: [], spans: session.spans))
                 continue
             }
+            let spansByDay = Dictionary(grouping: session.spansByRequest()) { calendar.startOfDay(for: $0.request) }
             for (day, prompts) in byDay {
-                buckets[day, default: []].append(DayEntry(session: session, prompts: prompts.sorted { $0.date < $1.date }))
+                buckets[day, default: []].append(DayEntry(session: session, prompts: prompts.sorted { $0.date < $1.date },
+                                                          spans: spansByDay[day]?.map(\.span) ?? []))
             }
         }
         return buckets.map { day, entries in
@@ -148,7 +165,7 @@ public enum WorkLogAnalytics {
         return totals.values.sorted { $0.tokens > $1.tokens }
     }
 
-    /// 기간 안에 요청이 있었던 세션만, 요청도 그 기간 것만 남긴다.
+    /// 기간 안에 요청이 있었던 세션만, 요청과 AI 가 일한 구간도 그 기간 요청의 것만 남긴다.
     public static func clip(_ sessions: [WorkSession], to interval: DateInterval?) -> [WorkSession] {
         guard let interval else { return sessions }
         return sessions.compactMap { s in
@@ -158,6 +175,7 @@ public enum WorkLogAnalytics {
             if inside.count == s.prompts.count { return s }
             var copy = s
             copy.prompts = inside
+            copy.spans = s.spansByRequest().filter { interval.contains($0.request) }.map(\.span)
             return copy
         }
     }
@@ -240,13 +258,13 @@ public struct ProjectTime: Hashable, Sendable, Identifiable {
 }
 
 extension WorkLogAnalytics {
-    /// 기간 안 프로젝트별 작업 시간 (요청 시각 기준), 많은 순.
+    /// 기간 안 프로젝트별 작업 시간 (날짜별 작업 시간과 같은 방법), 많은 순.
     public static func projectTimes(_ days: [DayGroup]) -> [ProjectTime] {
         var map: [String: ProjectTime] = [:]
         for day in days {
             for e in day.entries {
                 var t = map[e.session.projectPath] ?? ProjectTime(path: e.session.projectPath, seconds: 0, prompts: 0)
-                t.seconds += DayGroup(day: day.day, entries: [e]).activeSeconds
+                t.seconds += e.activeSeconds
                 t.prompts += e.userPrompts.count
                 map[e.session.projectPath] = t
             }

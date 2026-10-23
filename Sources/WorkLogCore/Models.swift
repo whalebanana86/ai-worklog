@@ -94,6 +94,18 @@ public struct FileTouch: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
+/// AI 가 쉬지 않고 일한 구간. Claude Code 의 응답 시간("Churned for 1m 46s")이나 Codex 한 차례 작업에서,
+/// 10분 넘게 기록이 끊긴 곳은 잘라 낸 것.
+public struct WorkSpan: Codable, Hashable, Sendable {
+    public var start: Date
+    public var end: Date
+
+    public init(start: Date, end: Date) {
+        self.start = start
+        self.end = end
+    }
+}
+
 /// AI 와 한 번 앉아서 한 작업(세션) 하나.
 public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     public var tool: AITool
@@ -106,9 +118,9 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     public var gitBranch: String?
     public var start: Date
     public var end: Date
-    /// 10분 넘게 쉰 구간을 뺀, 실제로 주고받은 시간.
-    public var activeSeconds: Double
     public var prompts: [PromptEntry]
+    /// AI 가 일한 구간. 응답 시간이 기록에 남지 않는 도구나 옛 기록은 비어 있다 (그때는 요청 시각으로만 잰다).
+    public var spans: [WorkSpan] = []
     public var files: [FileTouch]
     public var toolUses: [String: Int]
     public var models: [String: ModelUsage]
@@ -128,6 +140,8 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     public var id: String { "\(tool.rawValue):\(sessionId)" }
 
     public var userPrompts: [PromptEntry] { prompts.filter { !$0.isCommand } }
+    /// 작업 시간. 날짜별로 잰 값(`DayEntry.activeSeconds`)의 합이라, 한눈에 보기·프로젝트·세션 화면의 숫자가 서로 맞는다.
+    public var activeSeconds: Double { WorkLogAnalytics.days([self]).reduce(0) { $0 + $1.activeSeconds } }
     /// 사람이 아니라 스크립트·예약 작업·시험 도구가 돌린 세션.
     public var isAutomated: Bool {
         if WorkSession.isScratchFolder(cwd) { return true }
@@ -151,7 +165,7 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     }
 
     public init(tool: AITool, sessionId: String, title: String, cwd: String, projectPath: String, gitBranch: String? = nil,
-                start: Date, end: Date, activeSeconds: Double, prompts: [PromptEntry], files: [FileTouch] = [],
+                start: Date, end: Date, prompts: [PromptEntry], files: [FileTouch] = [],
                 toolUses: [String: Int] = [:], models: [String: ModelUsage] = [:], costUSD: Double? = nil,
                 linesAdded: Int? = nil, linesRemoved: Int? = nil, subagents: Int = 0, sourcePath: String? = nil,
                 hasTranscript: Bool = true) {
@@ -163,7 +177,6 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
         self.gitBranch = gitBranch
         self.start = start
         self.end = end
-        self.activeSeconds = activeSeconds
         self.prompts = prompts
         self.files = files
         self.toolUses = toolUses

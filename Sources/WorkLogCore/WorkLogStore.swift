@@ -106,6 +106,9 @@ public final class WorkLogStore: @unchecked Sendable {
         if !db.hasColumn("sessions", "skills") {
             try db.exec("ALTER TABLE sessions ADD COLUMN skills TEXT NOT NULL DEFAULT '{}'")
         }
+        if !db.hasColumn("sessions", "spans") {
+            try db.exec("ALTER TABLE sessions ADD COLUMN spans TEXT NOT NULL DEFAULT '[]'")
+        }
         if !db.hasColumn("day_summaries", "covered_until") {
             try db.exec("ALTER TABLE day_summaries ADD COLUMN covered_until REAL")
         }
@@ -134,9 +137,10 @@ public final class WorkLogStore: @unchecked Sendable {
             prompts[key, default: []].append(p)
         }
 
+        // active_seconds 칸은 다른 도구가 읽으라고 저장만 한다. 앱은 요청과 AI 가 일한 구간(spans)으로 다시 잰다.
         var sessions: [String: WorkSession] = [:]
         try db.query("""
-            SELECT key, tool, session_id, title, cwd, project_path, git_branch, start, end, active_seconds, cost_usd,
+            SELECT key, tool, session_id, title, cwd, project_path, git_branch, start, end, spans, cost_usd,
                    lines_added, lines_removed, subagents, source_path, has_transcript, source_missing, tool_uses, models, files, skills
             FROM sessions
             """) { row in
@@ -150,7 +154,6 @@ public final class WorkLogStore: @unchecked Sendable {
                 gitBranch: row.string(6),
                 start: Date(timeIntervalSince1970: row.double(7)),
                 end: Date(timeIntervalSince1970: row.double(8)),
-                activeSeconds: row.double(9),
                 prompts: prompts[key] ?? [],
                 files: Self.decode([FileTouch].self, row.string(19)) ?? [],
                 toolUses: Self.decode([String: Int].self, row.string(17)) ?? [:],
@@ -164,6 +167,7 @@ public final class WorkLogStore: @unchecked Sendable {
             )
             s.sourceMissing = row.int(16) != 0
             s.skillsUsed = Self.decode([String: Int].self, row.string(20)) ?? [:]
+            s.spans = Self.decode([WorkSpan].self, row.string(9)) ?? []
             sessions[key] = s
         }
         return sessions
@@ -248,8 +252,8 @@ public final class WorkLogStore: @unchecked Sendable {
                 try db.run("""
                     INSERT INTO sessions (key, tool, session_id, title, cwd, project_path, git_branch, start, end, active_seconds,
                         cost_usd, lines_added, lines_removed, subagents, source_path, has_transcript, source_missing,
-                        tool_uses, models, files, skills, first_saved, updated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        tool_uses, models, files, skills, spans, first_saved, updated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(key) DO UPDATE SET
                         title = excluded.title, cwd = excluded.cwd, project_path = excluded.project_path,
                         git_branch = excluded.git_branch, start = excluded.start, end = excluded.end,
@@ -258,12 +262,12 @@ public final class WorkLogStore: @unchecked Sendable {
                         subagents = excluded.subagents, source_path = excluded.source_path,
                         has_transcript = excluded.has_transcript, source_missing = excluded.source_missing,
                         tool_uses = excluded.tool_uses, models = excluded.models, files = excluded.files,
-                        skills = excluded.skills, updated = excluded.updated
+                        skills = excluded.skills, spans = excluded.spans, updated = excluded.updated
                     """, [
                         s.id, s.tool.rawValue, s.sessionId, s.title, s.cwd, s.projectPath, s.gitBranch, s.start, s.end,
                         s.activeSeconds, s.costUSD, s.linesAdded, s.linesRemoved, s.subagents, s.sourcePath,
                         s.hasTranscript, s.sourceMissing, Self.encode(s.toolUses), Self.encode(s.models), Self.encode(s.files),
-                        Self.encode(s.skillsUsed), now, now,
+                        Self.encode(s.skillsUsed), Self.encode(s.spans), now, now,
                     ])
                 try db.run("DELETE FROM prompts WHERE session_key = ?", [s.id])
                 for (i, p) in s.prompts.enumerated() {
@@ -344,13 +348,17 @@ extension WorkSession {
     func merged(withArchived old: WorkSession) -> WorkSession {
         var result = self
         // 같은 요청인지는 보낸 시각(밀리초)으로 본다. 글 정리 규칙이 바뀌어도 같은 요청이 두 번 들어가지 않게.
-        func key(_ p: PromptEntry) -> Int { Int((p.date.timeIntervalSince1970 * 1000).rounded()) }
-        let fresh = Set(prompts.map(key))
-        let lost = old.prompts.filter { !fresh.contains(key($0)) }
+        func key(_ date: Date) -> Int { Int((date.timeIntervalSince1970 * 1000).rounded()) }
+        let fresh = Set(prompts.map { key($0.date) })
+        let lost = old.prompts.filter { !fresh.contains(key($0.date)) }
         if !lost.isEmpty {
             result.prompts = (prompts + lost).sorted { $0.date < $1.date }
             result.start = min(start, old.start)
             result.end = max(end, old.end)
+            // 사라진 요청으로 AI 가 일한 구간도 함께 남긴다.
+            let lostKeys = Set(lost.map { key($0.date) })
+            let lostSpans = old.spansByRequest().filter { lostKeys.contains(key($0.request)) }.map(\.span)
+            if !lostSpans.isEmpty { result.spans = (spans + lostSpans).sorted { $0.start < $1.start } }
         }
         // 답변이 있던 보관본을, 답변이 없는 기록(프롬프트만 남은 기록)으로 덮지 않는다.
         if old.hasTranscript && !hasTranscript { return old }

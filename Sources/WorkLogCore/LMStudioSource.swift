@@ -47,9 +47,6 @@ public struct LMStudioSource {
         guard let first = prompts.first else { return nil }
 
         let name = (o["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        var clock = ActiveClock()
-        clock.tick(created)
-        clock.tick(max(created, modified))
         return WorkSession(
             tool: .lmStudio,
             sessionId: url.deletingPathExtension().deletingPathExtension().lastPathComponent,
@@ -58,7 +55,6 @@ public struct LMStudioSource {
             projectPath: "LM Studio 대화",
             start: created,
             end: max(created, modified),
-            activeSeconds: clock.seconds,
             prompts: prompts,
             models: [model: ModelUsage(unsplitTokens: (o["tokenCount"] as? Int) ?? 0)],
             sourcePath: url.path

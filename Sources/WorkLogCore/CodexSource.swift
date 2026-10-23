@@ -49,9 +49,6 @@ public struct CodexSource {
                     .first { !$0.isEmpty } ?? "제목 없는 스레드"
                 var models: [String: ModelUsage] = [:]
                 models[row.string(8) ?? "codex"] = ModelUsage(unsplitTokens: row.int(7))
-                var clock = ActiveClock()
-                clock.tick(start)
-                clock.tick(end)
                 sessions[id] = WorkSession(
                     tool: .codex,
                     sessionId: id,
@@ -61,7 +58,6 @@ public struct CodexSource {
                     gitBranch: row.string(9),
                     start: start,
                     end: end,
-                    activeSeconds: clock.seconds,
                     prompts: firstMessage.isEmpty ? [] : [PromptEntry(date: start, text: CodexText.clean(firstMessage), isAutomated: source == "exec")],
                     models: models,
                     sourcePath: row.string(1),
@@ -106,6 +102,8 @@ public struct CodexSource {
             var added = 0
             var removed = 0
             var clock = ActiveClock()
+            /// 항목(요청·생각·명령·답변…)이 이어진 구간. 한 차례 작업의 길이가 원본의 걸린 시간(`task_complete`)과 거의 같다.
+            var spans: [WorkSpan] = []
             var skills: [String: Int] = [:]
         }
         var details: [String: Detail] = [:]
@@ -115,6 +113,7 @@ public struct CodexSource {
                 let date = Date(timeIntervalSince1970: Double(row.int(1)) / 1000)
                 var d = details[tid] ?? Detail()
                 d.clock.tick(date)
+                d.spans.extend(to: date)
                 defer { details[tid] = d }
                 guard type != "reasoning", let json = row.string(3),
                       let o = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] else { return }
@@ -178,7 +177,7 @@ public struct CodexSource {
             if let first = d.clock.first, let last = d.clock.last {
                 s.start = min(s.start, first)
                 s.end = max(s.end, last)
-                s.activeSeconds = d.clock.seconds
+                s.spans = d.spans
             }
             sessions[tid] = s
         }

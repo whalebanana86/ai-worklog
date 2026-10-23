@@ -175,6 +175,22 @@ final class WorkLogCoreTests: XCTestCase {
         XCTAssertEqual(resumed.models, full.models)
     }
 
+    func testResponseTimeSurvivesRestartInTheMiddleOfAResponse() throws {
+        try append([user("오래 걸리는 일", at: "2026-10-16T01:00:00.000Z"),
+                    assistant(id: "w1", at: "2026-10-16T01:03:00.000Z", content: [["type": "text", "text": "하는 중"]])])
+        _ = makeLoader().load()
+
+        // 앱을 다시 켠 뒤에 응답이 끝난다: 끝나기 전까지 이어진 기록을 읽기 상태에 남겨 둬야 한다.
+        try append([assistant(id: "w2", at: "2026-10-16T01:08:00.000Z", content: [["type": "text", "text": "다 했어요"]]),
+                    ["type": "system", "subtype": "turn_duration", "durationMs": 480_500, "timestamp": "2026-10-16T01:08:00.500Z"]])
+        let resumed = try session(makeLoader().load())
+        let full = try session(WorkLogLoader(claude: ClaudeCodeSource(root: claudeDir), codex: CodexSource(root: root),
+                                             lmStudio: LMStudioSource(root: root), storeURL: nil).load())
+        XCTAssertEqual(resumed.spans, full.spans)
+        XCTAssertEqual(resumed.spans.count, 1)
+        XCTAssertEqual(resumed.activeSeconds, 60 + 480.5, accuracy: 0.01)
+    }
+
     func testArchiveKeepsSessionAfterSourceIsDeleted() throws {
         try append(firstSession())
         _ = makeLoader().load()
@@ -222,7 +238,7 @@ final class WorkLogCoreTests: XCTestCase {
         let d0 = Date(timeIntervalSince1970: 1_000)
         let d1 = Date(timeIntervalSince1970: 2_000)
         let old = WorkSession(tool: .codex, sessionId: "x", title: "t", cwd: "/", projectPath: "/", start: d0, end: d1,
-                              activeSeconds: 60, prompts: [PromptEntry(date: d0, text: "옛 요청"), PromptEntry(date: d1, text: "새 요청")])
+                              prompts: [PromptEntry(date: d0, text: "옛 요청"), PromptEntry(date: d1, text: "새 요청")])
         var fresh = old
         fresh.prompts = [PromptEntry(date: d1, text: "새 요청", reply: "답")]
         let merged = fresh.merged(withArchived: old)
@@ -253,7 +269,7 @@ final class WorkLogCoreTests: XCTestCase {
         var asked = PromptEntry(date: day, text: "로그인 **버그** 고쳐줘", reply: "알겠어요. 세션 만료 처리를 고쳤어요.")
         asked.files = ["/p/src/auth.ts"]
         let session = WorkSession(tool: .claudeCode, sessionId: "A", title: "로그인 버그", cwd: "/p", projectPath: "/p",
-                                  start: day, end: day.addingTimeInterval(600), activeSeconds: 600, prompts: [
+                                  start: day, end: day.addingTimeInterval(600), prompts: [
                                       PromptEntry(date: day.addingTimeInterval(-60), text: "/clear", isCommand: true),
                                       asked,
                                       PromptEntry(date: day.addingTimeInterval(300), text: "<task-notification>", isAutomated: true),
@@ -309,7 +325,7 @@ final class WorkLogCoreTests: XCTestCase {
     private func dayGroup(_ dates: [Date], texts: [String]? = nil) -> DayGroup {
         let prompts = dates.enumerated().map { PromptEntry(date: $1, text: texts?[$0] ?? "요청 \($0)") }
         let session = WorkSession(tool: .claudeCode, sessionId: "P", title: "t", cwd: "/p", projectPath: "/p",
-                                  start: dates[0], end: dates[dates.count - 1], activeSeconds: 60, prompts: prompts)
+                                  start: dates[0], end: dates[dates.count - 1], prompts: prompts)
         return DayGroup(day: Calendar.current.startOfDay(for: dates[0]), entries: [DayEntry(session: session, prompts: prompts)])
     }
 

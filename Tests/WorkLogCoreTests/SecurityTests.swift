@@ -272,7 +272,7 @@ final class SecurityTests: XCTestCase {
         let pem = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmU=\n-----END OPENSSH PRIVATE KEY-----"
         let text = "이 키로 설정해줘 " + dummySecrets.joined(separator: " ") + " Authorization: Bearer " + String(repeating: "t0k", count: 10)
         let session = WorkSession(tool: .claudeCode, sessionId: "A", title: "키 설정", cwd: "/p", projectPath: "/p",
-                                  start: day, end: day.addingTimeInterval(600), activeSeconds: 600, prompts: [
+                                  start: day, end: day.addingTimeInterval(600), prompts: [
                                       PromptEntry(date: day, text: text, reply: "넣었어요\n" + pem),
                                   ])
         let source = try XCTUnwrap(DaySummarizer.source(project: "/p", day: day, sessions: [session]))

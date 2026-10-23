@@ -616,7 +616,7 @@ final class AppModel {
     }
 
     func makeReport(session: WorkSession) {
-        let entry = DayEntry(session: session, prompts: session.prompts)
+        let entry = DayEntry(session: session, prompts: session.prompts, spans: session.spans)
         report = ReportDraft(
             title: session.title,
             markdown: ReportBuilder.markdown(title: session.title, entries: [entry], promptsPerSession: 20),

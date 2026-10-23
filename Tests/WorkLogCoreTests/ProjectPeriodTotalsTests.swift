@@ -9,7 +9,7 @@ final class ProjectPeriodTotalsTests: XCTestCase {
         let start = calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: 10))!
         let prompts = (0..<count).map { PromptEntry(date: start.addingTimeInterval(Double($0) * 300), text: "요청 \($0)") }
         return WorkSession(tool: tool, sessionId: id, title: "t", cwd: "/p", projectPath: "/p",
-                           start: start, end: prompts.last!.date, activeSeconds: Double(count) * 300, prompts: prompts)
+                           start: start, end: prompts.last!.date, prompts: prompts)
     }
 
     func testCountsOnlyThePeriod() throws {

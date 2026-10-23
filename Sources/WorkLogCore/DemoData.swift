@@ -540,8 +540,10 @@ public enum DemoData {
                 for f in p.files { touches[f, default: 0] += 1 }
                 prompts.append(p)
             }
-            var clock = ActiveClock()
-            for d in dates { clock.tick(d) }
+            // AI 는 요청마다 다음 요청 1분 전까지, 마지막 요청은 4분 동안 일한 것으로 둔다.
+            let spans = dates.indices.map { i in
+                WorkSpan(start: dates[i], end: i + 1 < dates.count ? dates[i + 1].addingTimeInterval(-60) : dates[i].addingTimeInterval(4 * 60))
+            }
             let usage: ModelUsage = work.tool == .claudeCode
                 ? ModelUsage(inputTokens: work.tokens / 20, outputTokens: work.tokens / 25, cacheReadTokens: work.tokens * 8 / 10,
                              cacheWriteTokens: work.tokens / 10, costUSD: work.cost)
@@ -555,10 +557,11 @@ public enum DemoData {
             var session = WorkSession(
                 tool: work.tool, sessionId: "demo-\(work.project)-\(work.daysAgo)", title: work.title, cwd: base, projectPath: base,
                 gitBranch: work.tool == .lmStudio ? nil : "main",
-                start: dates.first!, end: dates.last!.addingTimeInterval(4 * 60), activeSeconds: clock.seconds + 240,
+                start: dates.first!, end: dates.last!.addingTimeInterval(4 * 60),
                 prompts: prompts, files: touches.map { FileTouch(path: $0.key, edits: $0.value) }.sorted { $0.path < $1.path },
                 toolUses: tools, models: [work.model: usage], costUSD: work.cost,
                 linesAdded: work.asks.reduce(0) { $0 + $1.added }, linesRemoved: work.asks.reduce(0) { $0 + $1.removed })
+            session.spans = spans
             session.skillsUsed = work.skills
             sessions.append(session)
         }

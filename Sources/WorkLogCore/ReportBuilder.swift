@@ -4,12 +4,7 @@ import Foundation
 public enum ReportBuilder {
     public static func markdown(title: String, entries: [DayEntry], promptsPerSession: Int = 4, summary: DaySummary? = nil) -> String {
         let prompts = entries.reduce(0) { $0 + $1.userPrompts.count }
-        var active = 0.0
-        for e in entries {
-            var clock = ActiveClock()
-            for p in e.prompts { clock.tick(p.date) }
-            active += e.prompts.isEmpty ? e.session.activeSeconds : clock.seconds
-        }
+        let active = entries.reduce(0) { $0 + $1.activeSeconds }
         let added = entries.reduce(0) { $0 + $1.linesAdded }
         let removed = entries.reduce(0) { $0 + $1.linesRemoved }
 

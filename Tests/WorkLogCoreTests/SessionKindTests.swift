@@ -114,7 +114,7 @@ final class SessionKindTests: XCTestCase {
         }
         let day = Date()
         let codex = WorkSession(tool: .codex, sessionId: "c", title: "t", cwd: "/private/tmp/e2e/demo-codex", projectPath: "/private/tmp/e2e/demo-codex",
-                                start: day, end: day, activeSeconds: 0, prompts: [PromptEntry(date: day, text: "암호 단어는 Y")])
+                                start: day, end: day, prompts: [PromptEntry(date: day, text: "암호 단어는 Y")])
         XCTAssertTrue(codex.isAutomated, "Codex 시험 세션도 숨긴다")
     }
 }
