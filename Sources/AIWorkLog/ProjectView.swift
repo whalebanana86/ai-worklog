@@ -222,7 +222,7 @@ struct ProjectView: View {
         }
     }
 
-    /// 머리: 이름 + 전체 기간 한 줄 요약 + 경로. 자세한 숫자는 오른쪽 정보 패널에, 폴더 동작은 … 메뉴·오른쪽 클릭에 둔다.
+    /// 머리: 이름 + 위쪽 기간 버튼에 맞춘 한 줄 요약 + 경로. 자세한 숫자는 오른쪽 정보 패널에, 폴더 동작은 … 메뉴·오른쪽 클릭에 둔다.
     private var header: some View {
         PageHeader(title: project.name, summary: headerSummary, symbol: "folder.fill") {
             HStack(spacing: 6) {
@@ -248,8 +248,13 @@ struct ProjectView: View {
 
     private var headerSummary: String {
         guard !project.sessions.isEmpty else { return L("메모만 남음") }
-        return [L("전체 기간"), L("세션 %@개", Fmt.number(project.sessions.count)), L("요청 %@개", Fmt.number(project.promptCount)),
-                L("약 %@", Fmt.duration(project.activeSeconds)), "\(Fmt.day(project.firstActive)) ~ \(Fmt.relativeDay(project.lastActive))"]
+        let p = project.totals(in: model.period.interval())
+        guard p.totals.prompts > 0, let first = p.first, let last = p.last else {
+            return "\(model.period.longLabel) · \(L("이 기간에는 AI 에게 맡긴 일이 없어요."))"
+        }
+        let span = Calendar.current.isDate(first, inSameDayAs: last) ? Fmt.relativeDay(last) : "\(Fmt.day(first)) ~ \(Fmt.relativeDay(last))"
+        return [model.period.longLabel, L("세션 %@개", Fmt.number(p.totals.sessions)), L("요청 %@개", Fmt.number(p.totals.prompts)),
+                L("약 %@", Fmt.duration(p.totals.activeSeconds)), span]
             .joined(separator: " · ")
     }
 }

@@ -209,6 +209,28 @@ public struct WorkTotals: Sendable {
     }
 }
 
+/// 프로젝트 하나의 기간 합계 (프로젝트 화면 머리·정보 패널). 한눈에 보기 숫자와 같은 방법으로 센다.
+public struct ProjectPeriodTotals: Sendable {
+    public var totals: WorkTotals
+    /// 기간 안에서 쓴 AI 도구.
+    public var tools: Set<AITool>
+    /// 기간 안 첫 요청과 마지막 요청.
+    public var first: Date?
+    public var last: Date?
+}
+
+extension ProjectSummary {
+    /// `interval` 이 nil 이면 전체 기간.
+    public func totals(in interval: DateInterval?) -> ProjectPeriodTotals {
+        let clipped = WorkLogAnalytics.clip(sessions, to: interval)
+        let byId = Dictionary(sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let dates = clipped.flatMap(\.userPrompts).map(\.date)
+        return ProjectPeriodTotals(totals: WorkTotals(days: WorkLogAnalytics.days(clipped), original: { byId[$0] }),
+                                   tools: Set(clipped.filter { !$0.userPrompts.isEmpty }.map(\.tool)),
+                                   first: dates.min(), last: dates.max())
+    }
+}
+
 public struct ProjectTime: Hashable, Sendable, Identifiable {
     public var path: String
     public var seconds: Double
