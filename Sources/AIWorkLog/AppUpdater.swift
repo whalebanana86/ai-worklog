@@ -11,6 +11,9 @@ final class AppUpdater {
     private(set) var status: String?
     private(set) var error: String?
     var isPresented = false
+    @ObservationIgnored private weak var updateWindow: NSWindow?
+
+    func attachUpdateWindow(_ window: NSWindow?) { updateWindow = window }
     let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
 
     var canAutomaticallyInstall: Bool { available?.updateAsset != nil && Bundle.main.bundleURL.pathExtension == "app" }
@@ -92,9 +95,26 @@ final class AppUpdater {
             process.standardInput = FileHandle.nullDevice
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
+            // Remove an earlier attempt's result before starting this helper.
+            try? fm.removeItem(at: UpdateInstallation.resultURL)
             try process.run()
             status = L("앱을 교체하고 다시 시작하는 중…")
-            NSApp.terminate(nil)
+            // AppKit refuses termination while a modal sheet prohibits it, even
+            // before consulting the app delegate. Only release our update sheet.
+            updateWindow?.preventsApplicationTerminationWhenModal = false
+            isPresented = false
+            if let window = updateWindow, let parent = window.sheetParent {
+                parent.endSheet(window)
+            }
+            await UpdateShutdown.request(
+                terminate: { NSApp.terminate(nil) },
+                stillRunning: {
+                    // If control returns and the app remains alive, the helper
+                    // can only be waiting for this PID. Cancel it before cleanup.
+                    await UpdateShutdown.cancelWaitingHelper(process)
+                    self.resetAfterFailedHandoff(plan)
+                }
+            )
         } catch {
             if let prepared { try? fm.removeItem(at: prepared.candidate) }
             try? fm.removeItem(at: workspace)
@@ -104,6 +124,17 @@ final class AppUpdater {
             isInstalling = false
         }
     }
+
+    private func resetAfterFailedHandoff(_ plan: UpdatePlan) {
+        try? UpdateInstallation.cleanupTemporaryFiles(plan)
+        isInstalling = false
+        status = nil
+        progress = nil
+        error = L("앱을 자동으로 종료하지 못해 업데이트를 취소했어요. 기존 앱은 그대로예요. 다시 시도해 주세요.")
+        readInstallationResult()
+        isPresented = true
+    }
+
 }
 
 private struct UpdateBusyError: LocalizedError {
@@ -173,5 +204,25 @@ struct AppUpdateSheet: View {
         .padding(24)
         .frame(width: 480)
         .interactiveDismissDisabled(updater.isInstalling)
+        .background(UpdateSheetWindowReader { updater.attachUpdateWindow($0) })
+    }
+}
+
+/// Access the specific sheet window; never change other windows or report dialogs.
+private struct UpdateSheetWindowReader: NSViewRepresentable {
+    var changed: (NSWindow?) -> Void
+    func makeNSView(context: Context) -> WindowReader {
+        let view = WindowReader()
+        view.changed = changed
+        return view
+    }
+    func updateNSView(_ view: WindowReader, context: Context) { view.changed = changed }
+
+    final class WindowReader: NSView {
+        var changed: ((NSWindow?) -> Void)?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            changed?(window)
+        }
     }
 }

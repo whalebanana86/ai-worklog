@@ -159,6 +159,18 @@ public enum UpdateInstallation {
         }
     }
 
+    /// Remove only staging files. Never remove the installed app or its rollback backup.
+    public static func cleanupTemporaryFiles(_ plan: UpdatePlan) throws {
+        try plan.validatePaths()
+        let workspace = plan.workspace.standardizedFileURL.path
+        guard !plan.target.standardizedFileURL.path.hasPrefix(workspace + "/"),
+              !plan.backup.standardizedFileURL.path.hasPrefix(workspace + "/") else { throw AppUpdateError.invalidPlan }
+        let fm = FileManager.default
+        for url in [plan.candidate, plan.workspace] where fm.fileExists(atPath: url.path) {
+            try fm.removeItem(at: url)
+        }
+    }
+
     public static func runHelper(planURL: URL) -> Int32 {
         var plan: UpdatePlan?
         do {
@@ -184,7 +196,7 @@ public enum UpdateInstallation {
             })
             _ = try? FileManager.default.trashItem(at: decoded.backup, resultingItemURL: nil)
             // Auto-sync uses the same bundle path. Records and preferences were never moved.
-            try? FileManager.default.removeItem(at: decoded.workspace)
+            try? cleanupTemporaryFiles(decoded)
             return 0
         } catch {
             writeResult(error.localizedDescription)
@@ -194,7 +206,7 @@ public enum UpdateInstallation {
                    (try? UpdateAppValidation.info(plan.target)) != nil {
                     _ = try? UpdateProcess.output("/usr/bin/open", ["-n", plan.target.path])
                 }
-                try? FileManager.default.removeItem(at: plan.candidate)
+                try? cleanupTemporaryFiles(plan)
             }
             return 1
         }

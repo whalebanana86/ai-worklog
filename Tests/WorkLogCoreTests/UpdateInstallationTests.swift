@@ -125,4 +125,20 @@ final class UpdateInstallationTests: XCTestCase {
         }
     }
 
+    func testCleanupRemovesStagingButKeepsInstalledAppAndRecoveryBackup() throws {
+        let fm = FileManager.default
+        let work = try workspace()
+        let target = work.deletingLastPathComponent().appendingPathComponent("InstalledCleanupTest-" + UUID().uuidString + ".app")
+        let plan = UpdatePlan(target: target, workspace: work, version: "1.7.1", team: nil, parentPID: getpid())
+        defer {
+            for url in [work, target, plan.candidate, plan.backup] { try? fm.removeItem(at: url) }
+        }
+        for url in [target, plan.candidate, plan.backup] { try fm.createDirectory(at: url, withIntermediateDirectories: false) }
+        try UpdateInstallation.cleanupTemporaryFiles(plan)
+        XCTAssertFalse(fm.fileExists(atPath: work.path))
+        XCTAssertFalse(fm.fileExists(atPath: plan.candidate.path))
+        XCTAssertTrue(fm.fileExists(atPath: target.path))
+        XCTAssertTrue(fm.fileExists(atPath: plan.backup.path))
+    }
+
 }

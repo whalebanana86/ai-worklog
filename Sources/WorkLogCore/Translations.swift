@@ -4,6 +4,7 @@ import Foundation
 /// 빠진 열쇠와 빈자리(%@) 수가 다른 번역은 테스트(testEveryScreenTextHasTranslations)가 찾아 준다.
 enum Translations {
     static let en: [String: String] = [
+        "앱을 자동으로 종료하지 못해 업데이트를 취소했어요. 기존 앱은 그대로예요. 다시 시도해 주세요.": "The app could not quit automatically, so the update was canceled. Your existing app is unchanged. Please try again.",
         "자동 설치할 수 있는 업데이트 파일이 없어요. 다운로드 페이지에서 설치해 주세요.": "No verified automatic update is available. Install it from the download page.",
         "다운로드한 파일의 검증 값이 맞지 않아요. 다시 다운로드해 주세요.": "The downloaded file failed verification. Please download it again.",
         "업데이트 압축 파일이 올바르지 않아요.": "The update archive is invalid.",
@@ -490,6 +491,7 @@ enum Translations {
     ]
 
     static let ja: [String: String] = [
+        "앱을 자동으로 종료하지 못해 업데이트를 취소했어요. 기존 앱은 그대로예요. 다시 시도해 주세요.": "アプリを自動終了できなかったため、更新を中止しました。既存のアプリはそのままです。もう一度お試しください。",
         "자동 설치할 수 있는 업데이트 파일이 없어요. 다운로드 페이지에서 설치해 주세요.": "自動インストールできる更新ファイルがありません。ダウンロードページからインストールしてください。",
         "다운로드한 파일의 검증 값이 맞지 않아요. 다시 다운로드해 주세요.": "ダウンロードしたファイルの検証値が一致しません。もう一度ダウンロードしてください。",
         "업데이트 압축 파일이 올바르지 않아요.": "更新の圧縮ファイルが正しくありません。",
