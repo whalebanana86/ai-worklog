@@ -188,7 +188,7 @@ final class WorkLogCoreTests: XCTestCase {
                                              lmStudio: LMStudioSource(root: root), storeURL: nil).load())
         XCTAssertEqual(resumed.spans, full.spans)
         XCTAssertEqual(resumed.spans.count, 1)
-        XCTAssertEqual(resumed.activeSeconds, 60 + 480.5, accuracy: 0.01)
+        XCTAssertEqual(resumed.activeSeconds, 540.5, accuracy: 0.01, "1분 + 응답 8분 0.5초")
     }
 
     func testArchiveKeepsSessionAfterSourceIsDeleted() throws {

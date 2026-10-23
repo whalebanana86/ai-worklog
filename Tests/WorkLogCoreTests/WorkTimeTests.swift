@@ -30,16 +30,20 @@ final class WorkTimeTests: XCTestCase {
 
     func testWithoutSpansItMatchesTheRequestClock() {
         var clock = ActiveClock()
-        let points = [0, 300, 7500].map { t0.addingTimeInterval($0) }
+        let offsets: [TimeInterval] = [0, 300, 7500]
+        let points = offsets.map { t0.addingTimeInterval($0) }
         points.forEach { clock.tick($0) }
         XCTAssertEqual(ActiveClock.seconds(points: points, spans: []), clock.seconds)
     }
 
     func testAIWorkAndShortGapsCount() {
         // 0초에 요청 → AI 가 20분 일함 → 5분 뒤 다시 요청 → 5분 일함
-        let points = [0, 1500].map { t0.addingTimeInterval($0) }
-        XCTAssertEqual(ActiveClock.seconds(points: points, spans: []), 60 + 60, "요청 시각만 보면 25분 틈을 쉰 걸로 본다")
-        XCTAssertEqual(ActiveClock.seconds(points: points, spans: [span(0, 1200), span(1500, 1800)]), 60 + 1800)
+        let offsets: [TimeInterval] = [0, 1500]
+        let points = offsets.map { t0.addingTimeInterval($0) }
+        // 요청 시각만 보면 25분 틈을 쉰 걸로 봐서 1분 + 1분
+        XCTAssertEqual(ActiveClock.seconds(points: points, spans: []), 120)
+        // 구간까지 보면 처음부터 끝까지 30분 + 1분
+        XCTAssertEqual(ActiveClock.seconds(points: points, spans: [span(0, 1200), span(1500, 1800)]), 1860)
     }
 
     func testTurnDurationIsTrimmedToRecordedWork() throws {
@@ -56,7 +60,8 @@ final class WorkTimeTests: XCTestCase {
         let s = try XCTUnwrap(acc.makeSession(sourcePath: "/x.jsonl", subagents: 0))
 
         XCTAssertEqual(s.spans, [span(0, 301), span(3600, 3610), span(5410, 5460), span(7200, 7320)])
-        XCTAssertEqual(s.activeSeconds, (60 + 301) + (60 + 10) + (60 + 50) + (60 + 120))
+        // 덩어리 4개마다 1분 + 301초 + 10초 + 50초 + 120초
+        XCTAssertEqual(s.activeSeconds, 721)
     }
 
     func testSpansCountOnTheDayOfTheirRequest() throws {
@@ -68,14 +73,15 @@ final class WorkTimeTests: XCTestCase {
         // 밤 요청으로 자정을 넘겨 40분, 아침 요청으로 5분
         s.spans = [WorkSpan(start: day1, end: day1.addingTimeInterval(2400)), WorkSpan(start: day2, end: day2.addingTimeInterval(300))]
 
-        let days = WorkLogAnalytics.days([s])
-        XCTAssertEqual(days.map(\.activeSeconds), [60 + 300, 60 + 2400], "자정을 넘긴 일도 요청한 날에 센다")
-        XCTAssertEqual(s.activeSeconds, 60 + 300 + 60 + 2400)
+        // 아침: 1분 + 5분, 밤: 1분 + 40분 (자정을 넘긴 일도 요청한 날에 센다)
+        let perDay: [Double] = WorkLogAnalytics.days([s]).map(\.activeSeconds)
+        XCTAssertEqual(perDay, [360, 2460])
+        XCTAssertEqual(s.activeSeconds, 2820)
 
         let morning = DateInterval(start: cal.startOfDay(for: day2), duration: 86_400)
         let clipped = try XCTUnwrap(WorkLogAnalytics.clip([s], to: morning).first)
         XCTAssertEqual(clipped.spans, [s.spans[1]])
-        XCTAssertEqual(clipped.activeSeconds, 60 + 300)
+        XCTAssertEqual(clipped.activeSeconds, 360)
     }
 
     func testStoreKeepsSpans() throws {
@@ -89,7 +95,7 @@ final class WorkTimeTests: XCTestCase {
 
         let loaded = try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id])
         XCTAssertEqual(loaded.spans, s.spans)
-        XCTAssertEqual(loaded.activeSeconds, 60 + 900)
+        XCTAssertEqual(loaded.activeSeconds, 960)
     }
 
     func testMergeKeepsSpansOfLostPrompts() {
