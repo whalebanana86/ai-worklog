@@ -76,6 +76,39 @@ final class UpdateInstallationTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: plan.backup.path))
     }
 
+    func testRollbackRestoresOriginalEvenIfFailedCandidateCannotBeKept() throws {
+        let fm = FileManager.default
+        let root = try workspace(); defer { try? fm.removeItem(at: root) }
+        let target = root.appendingPathComponent("Installed.app")
+        let plan = UpdatePlan(target: target, workspace: root, version: "1.6.0", team: nil, parentPID: getpid())
+        try fm.createDirectory(at: target, withIntermediateDirectories: false)
+        try Data("old".utf8).write(to: target.appendingPathComponent("version"))
+        try fm.createDirectory(at: plan.candidate, withIntermediateDirectories: false)
+        var checks = 0
+        XCTAssertThrowsError(try UpdateInstallation.replace(plan, validate: { _ in
+            checks += 1
+            guard checks == 2 else { return }
+            // The swapped-in app fails, and its staging name is taken, so it cannot be moved back there.
+            try fm.createDirectory(at: plan.candidate, withIntermediateDirectories: false)
+            throw AppUpdateError.invalidSignature
+        }, restart: { _ in XCTFail("Must not restart") }))
+        XCTAssertEqual(try String(contentsOf: target.appendingPathComponent("version")), "old")
+        XCTAssertFalse(fm.fileExists(atPath: plan.backup.path))
+    }
+
+    func testLaunchRemovesLeftoverCandidatesButKeepsBackups() throws {
+        let fm = FileManager.default
+        let root = try workspace(); defer { try? fm.removeItem(at: root) }
+        let target = root.appendingPathComponent("Installed.app")
+        let leftover = root.appendingPathComponent(".Igeolnaega-update-\(UUID().uuidString).app")
+        let backup = root.appendingPathComponent(".Igeolnaega-backup-\(UUID().uuidString).app")
+        let other = root.appendingPathComponent("Other.app")
+        for url in [target, leftover, backup, other] { try fm.createDirectory(at: url, withIntermediateDirectories: false) }
+        UpdateInstallation.removeLeftoverCandidates(besides: target)
+        XCTAssertFalse(fm.fileExists(atPath: leftover.path))
+        for url in [target, backup, other] { XCTAssertTrue(fm.fileExists(atPath: url.path), url.lastPathComponent) }
+    }
+
     func testInvalidWorkspaceCannotBeCleanedUpByHelper() throws {
         let root = try workspace(); defer { try? FileManager.default.removeItem(at: root) }
         let plan = UpdatePlan(target: root.appendingPathComponent("Installed.app"), workspace: URL(fileURLWithPath: NSHomeDirectory()), version: "1.6.0", team: nil, parentPID: getpid())

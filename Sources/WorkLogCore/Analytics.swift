@@ -19,8 +19,10 @@ public struct DayEntry: Hashable, Sendable, Identifiable {
     public var userPrompts: [PromptEntry] { prompts.filter { !$0.isCommand } }
     /// 이날 작업 시간: 요청 시각과 AI 가 일한 구간을 이어 재고, 10분 넘게 빈 곳은 뺀다 (`ActiveClock.seconds`).
     public var activeSeconds: Double {
-        if prompts.isEmpty && spans.isEmpty { return ActiveClock.seconds(points: [session.start, session.end], spans: []) }
-        return ActiveClock.seconds(points: prompts.map(\.date), spans: spans)
+        let seconds = prompts.isEmpty && spans.isEmpty
+            ? ActiveClock.seconds(points: [session.start, session.end], spans: [])
+            : ActiveClock.seconds(points: prompts.map(\.date), spans: spans)
+        return seconds * (session.archivedTimeScale ?? 1)
     }
     /// 이날 요청들로 고친 파일.
     public var files: [String] {
@@ -163,6 +165,16 @@ public enum WorkLogAnalytics {
             }
         }
         return totals.values.sorted { $0.tokens > $1.tokens }
+    }
+
+    /// 며칠에 나뉜 같은 세션을 한 줄로 합친다 (기간 보고서). 요청과 AI 가 일한 구간을 모두 모은다.
+    public static func entriesBySession(_ days: [DayGroup]) -> [DayEntry] {
+        Dictionary(grouping: days.flatMap(\.entries), by: \.session.id).compactMap { _, parts -> DayEntry? in
+            guard var first = parts.first else { return nil }
+            first.prompts = parts.flatMap(\.prompts).sorted { $0.date < $1.date }
+            first.spans = parts.flatMap(\.spans).sorted { $0.start < $1.start }
+            return first
+        }
     }
 
     /// 기간 안에 요청이 있었던 세션만, 요청과 AI 가 일한 구간도 그 기간 요청의 것만 남긴다.

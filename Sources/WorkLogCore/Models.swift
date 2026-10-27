@@ -121,6 +121,9 @@ public struct WorkSession: Codable, Hashable, Sendable, Identifiable {
     public var prompts: [PromptEntry]
     /// AI 가 일한 구간. 응답 시간이 기록에 남지 않는 도구나 옛 기록은 비어 있다 (그때는 요청 시각으로만 잰다).
     public var spans: [WorkSpan] = []
+    /// 1.7 전에 보관돼 구간이 없는 세션은, 그때 기록 줄마다 잰 작업 시간이 요청 시각으로 잰 시간의 몇 배였는지.
+    /// 날짜별 시간에 곱해서 예전 작업 시간을 살린다 (보관함을 읽을 때만 채운다).
+    public var archivedTimeScale: Double?
     public var files: [FileTouch]
     public var toolUses: [String: Int]
     public var models: [String: ModelUsage]

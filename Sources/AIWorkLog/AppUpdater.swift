@@ -12,6 +12,7 @@ final class AppUpdater {
     private(set) var error: String?
     var isPresented = false
     @ObservationIgnored private weak var updateWindow: NSWindow?
+    @ObservationIgnored private var isDownloading = false
 
     func attachUpdateWindow(_ window: NSWindow?) { updateWindow = window }
     let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -65,9 +66,15 @@ final class AppUpdater {
             request.setValue("AIWorkLog/\(currentVersion)", forHTTPHeaderField: "User-Agent")
             let updater = self
             let delegate = UpdateDownloadProgress { written, total in
-                Task { @MainActor in updater.progress = total > 0 ? min(1, Double(written) / Double(total)) : nil }
+                Task { @MainActor in
+                    // Drop progress that arrives after the download finished, so verification shows its own spinner.
+                    guard updater.isDownloading else { return }
+                    updater.progress = total > 0 ? min(1, Double(written) / Double(total)) : nil
+                }
             }
+            isDownloading = true
             let (temporary, response) = try await URLSession.shared.download(for: request, delegate: delegate)
+            isDownloading = false
             defer { try? fm.removeItem(at: temporary) }
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
             let zip = workspace.appendingPathComponent("update.zip")
@@ -107,7 +114,11 @@ final class AppUpdater {
                 parent.endSheet(window)
             }
             await UpdateShutdown.request(
-                terminate: { NSApp.terminate(nil) },
+                terminate: {
+                    // A helper that already exited (e.g. it could not read the plan) will never reopen
+                    // the app. Stay open instead; the fallback below shows the helper's error.
+                    if process.isRunning { NSApp.terminate(nil) }
+                },
                 stillRunning: {
                     // If control returns and the app remains alive, the helper
                     // can only be waiting for this PID. Cancel it before cleanup.
@@ -116,6 +127,7 @@ final class AppUpdater {
                 }
             )
         } catch {
+            isDownloading = false
             if let prepared { try? fm.removeItem(at: prepared.candidate) }
             try? fm.removeItem(at: workspace)
             self.error = error.localizedDescription

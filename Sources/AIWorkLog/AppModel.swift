@@ -596,12 +596,7 @@ final class AppModel {
     }
 
     func makePeriodReport() {
-        let entries = days.flatMap(\.entries)
-        let merged = Dictionary(grouping: entries, by: \.session.id).compactMap { _, parts -> DayEntry? in
-            guard var first = parts.first else { return nil }
-            first.prompts = parts.flatMap(\.prompts).sorted { $0.date < $1.date }
-            return first
-        }
+        let merged = WorkLogAnalytics.entriesBySession(days)
         let range: String
         if let first = days.last?.day, let last = days.first?.day, first != last {
             range = "\(Fmt.day(first)) ~ \(Fmt.day(last))"

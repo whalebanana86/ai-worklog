@@ -249,13 +249,17 @@ struct ProjectView: View {
     private var headerSummary: String {
         guard !project.sessions.isEmpty else { return L("메모만 남음") }
         let p = project.totals(in: model.period.interval())
-        guard p.totals.prompts > 0, let first = p.first, let last = p.last else {
+        guard p.totals.sessions > 0 else {
             return "\(model.period.longLabel) · \(L("이 기간에는 AI 에게 맡긴 일이 없어요."))"
         }
-        let span = Calendar.current.isDate(first, inSameDayAs: last) ? Fmt.relativeDay(last) : "\(Fmt.day(first)) ~ \(Fmt.relativeDay(last))"
-        return [model.period.longLabel, L("세션 %@개", Fmt.number(p.totals.sessions)), L("요청 %@개", Fmt.number(p.totals.prompts)),
-                L("약 %@", Fmt.duration(p.totals.activeSeconds)), span]
-            .joined(separator: " · ")
+        // 명령만 있거나 저절로 돈 세션은 요청이 없어도 세션 수와 시간은 보여 준다.
+        var parts: [String] = [model.period.longLabel, L("세션 %@개", Fmt.number(p.totals.sessions))]
+        if p.totals.prompts > 0 { parts.append(L("요청 %@개", Fmt.number(p.totals.prompts))) }
+        parts.append(L("약 %@", Fmt.duration(p.totals.activeSeconds)))
+        if let first = p.first, let last = p.last {
+            parts.append(Calendar.current.isDate(first, inSameDayAs: last) ? Fmt.relativeDay(last) : "\(Fmt.day(first)) ~ \(Fmt.relativeDay(last))")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

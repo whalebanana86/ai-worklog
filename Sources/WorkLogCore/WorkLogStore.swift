@@ -109,6 +109,18 @@ public final class WorkLogStore: @unchecked Sendable {
         if !db.hasColumn("sessions", "spans") {
             try db.exec("ALTER TABLE sessions ADD COLUMN spans TEXT NOT NULL DEFAULT '[]'")
         }
+        // 1.7.0 은 구간을 {start, end} 와 2001년 기준 초로 저장했다. 다른 시각 칸처럼 1970년 기준으로 고쳐 둔다.
+        var oldSpans: [(key: String, text: String)] = []
+        try db.query("SELECT key, spans FROM sessions WHERE spans LIKE '[{%'") { row in
+            if let key = row.string(0), let text = row.string(1) { oldSpans.append((key, text)) }
+        }
+        if !oldSpans.isEmpty {
+            try db.transaction {
+                for old in oldSpans {
+                    try db.run("UPDATE sessions SET spans = ? WHERE key = ?", [Self.encodeSpans(Self.decodeSpans(old.text)), old.key])
+                }
+            }
+        }
         if !db.hasColumn("day_summaries", "covered_until") {
             try db.exec("ALTER TABLE day_summaries ADD COLUMN covered_until REAL")
         }
@@ -137,11 +149,13 @@ public final class WorkLogStore: @unchecked Sendable {
             prompts[key, default: []].append(p)
         }
 
-        // active_seconds 칸은 다른 도구가 읽으라고 저장만 한다. 앱은 요청과 AI 가 일한 구간(spans)으로 다시 잰다.
+        // active_seconds 칸은 다른 도구가 읽으라고 저장한다. 앱은 요청과 AI 가 일한 구간(spans)으로 다시 재고,
+        // 구간이 없는 옛 세션만 이 값을 살려 쓴다.
         var sessions: [String: WorkSession] = [:]
         try db.query("""
             SELECT key, tool, session_id, title, cwd, project_path, git_branch, start, end, spans, cost_usd,
-                   lines_added, lines_removed, subagents, source_path, has_transcript, source_missing, tool_uses, models, files, skills
+                   lines_added, lines_removed, subagents, source_path, has_transcript, source_missing, tool_uses, models, files, skills,
+                   active_seconds
             FROM sessions
             """) { row in
             guard let key = row.string(0), let tool = row.string(1).flatMap(AITool.init(rawValue:)) else { return }
@@ -167,7 +181,13 @@ public final class WorkLogStore: @unchecked Sendable {
             )
             s.sourceMissing = row.int(16) != 0
             s.skillsUsed = Self.decode([String: Int].self, row.string(20)) ?? [:]
-            s.spans = Self.decode([WorkSpan].self, row.string(9)) ?? []
+            s.spans = Self.decodeSpans(row.string(9))
+            // 1.7 전에 보관된 세션은 구간이 없다. 그때 기록 줄마다 잰 시간을 날짜별 요청 시간 비율대로 나눠 쓴다.
+            // 입력 기록만 남은 세션은 그때도 요청 시각으로만 쟀으니 그대로 둔다.
+            if s.spans.isEmpty && s.hasTranscript {
+                let byRequest = s.activeSeconds, stored = row.double(21)
+                if byRequest > 0, stored > byRequest + 1 { s.archivedTimeScale = stored / byRequest }
+            }
             sessions[key] = s
         }
         return sessions
@@ -267,7 +287,7 @@ public final class WorkLogStore: @unchecked Sendable {
                         s.id, s.tool.rawValue, s.sessionId, s.title, s.cwd, s.projectPath, s.gitBranch, s.start, s.end,
                         s.activeSeconds, s.costUSD, s.linesAdded, s.linesRemoved, s.subagents, s.sourcePath,
                         s.hasTranscript, s.sourceMissing, Self.encode(s.toolUses), Self.encode(s.models), Self.encode(s.files),
-                        Self.encode(s.skillsUsed), Self.encode(s.spans), now, now,
+                        Self.encode(s.skillsUsed), Self.encodeSpans(s.spans), now, now,
                     ])
                 try db.run("DELETE FROM prompts WHERE session_key = ?", [s.id])
                 for (i, p) in s.prompts.enumerated() {
@@ -340,6 +360,19 @@ public final class WorkLogStore: @unchecked Sendable {
         guard let text, let data = text.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(type, from: data)
     }
+
+    /// AI 가 일한 구간은 start·end 칸처럼 1970년 기준 초로, [[시작, 끝], …] 로 둔다.
+    static func encodeSpans(_ spans: [WorkSpan]) -> String {
+        encode(spans.map { [$0.start.timeIntervalSince1970, $0.end.timeIntervalSince1970] })
+    }
+
+    static func decodeSpans(_ text: String?) -> [WorkSpan] {
+        if let pairs = decode([[Double]].self, text) {
+            return pairs.compactMap { $0.count == 2 ? WorkSpan(start: Date(timeIntervalSince1970: $0[0]), end: Date(timeIntervalSince1970: $0[1])) : nil }
+        }
+        // 1.7.0 이 남긴 {start, end} (2001년 기준 초).
+        return decode([WorkSpan].self, text) ?? []
+    }
 }
 
 extension WorkSession {
@@ -360,6 +393,8 @@ extension WorkSession {
             let lostSpans = old.spansByRequest().filter { lostKeys.contains(key($0.request)) }.map(\.span)
             if !lostSpans.isEmpty { result.spans = (spans + lostSpans).sorted { $0.start < $1.start } }
         }
+        // 다시 읽어도 구간이 생기지 않는 옛 기록은 보관본에서 살린 작업 시간을 이어 받는다.
+        if result.spans.isEmpty { result.archivedTimeScale = old.archivedTimeScale }
         // 답변이 있던 보관본을, 답변이 없는 기록(프롬프트만 남은 기록)으로 덮지 않는다.
         if old.hasTranscript && !hasTranscript { return old }
         return result

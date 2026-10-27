@@ -47,7 +47,7 @@ public struct LMStudioSource {
         guard let first = prompts.first else { return nil }
 
         let name = (o["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return WorkSession(
+        var session = WorkSession(
             tool: .lmStudio,
             sessionId: url.deletingPathExtension().deletingPathExtension().lastPathComponent,
             title: (name?.isEmpty == false ? name! : first.text.singleLine).clipped(80),
@@ -59,6 +59,10 @@ public struct LMStudioSource {
             models: [model: ModelUsage(unsplitTokens: (o["tokenCount"] as? Int) ?? 0)],
             sourcePath: url.path
         )
+        // 메시지마다 시각이 없어서, 마지막으로 주고받은 때(파일을 고친 때)를 한 점으로 넣는다.
+        // 만든 때와 10분 안이면 그 사이를 재고, 더 벌어지면 따로 센다.
+        if modified > created { session.spans = [WorkSpan(start: modified, end: modified)] }
+        return session
     }
 
     /// 메시지 안의 `text` 값을 모두 모은다. 생각(reasoning) 블록은 뺀다.

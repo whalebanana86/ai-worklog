@@ -153,7 +153,10 @@ public enum UpdateInstallation {
             try restart(plan.target)
         } catch {
             // Preserve the failed candidate for diagnostics, then put the original back.
-            if fm.fileExists(atPath: plan.target.path) { try fm.moveItem(at: plan.target, to: plan.candidate) }
+            // Restoring the original must not depend on keeping the candidate.
+            if fm.fileExists(atPath: plan.target.path), (try? fm.moveItem(at: plan.target, to: plan.candidate)) == nil {
+                try? fm.removeItem(at: plan.target)
+            }
             try fm.moveItem(at: plan.backup, to: plan.target)
             throw error
         }
@@ -168,6 +171,20 @@ public enum UpdateInstallation {
         let fm = FileManager.default
         for url in [plan.candidate, plan.workspace] where fm.fileExists(atPath: url.path) {
             try fm.removeItem(at: url)
+        }
+    }
+
+    /// A crash or force quit between `prepare` and the helper leaves a hidden candidate next to the app.
+    /// Remove those on launch. Rollback backups are never touched.
+    public static func removeLeftoverCandidates(besides target: URL) {
+        let fm = FileManager.default
+        let target = target.resolvingSymlinksInPath().standardizedFileURL
+        let root = target.deletingLastPathComponent()
+        guard target.pathExtension == "app", let names = try? fm.contentsOfDirectory(atPath: root.path) else { return }
+        for name in names where name.hasPrefix(".Igeolnaega-update-") && name.hasSuffix(".app") {
+            let url = root.appendingPathComponent(name)
+            guard url != target, (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == false else { continue }
+            try? fm.removeItem(at: url)
         }
     }
 

@@ -82,10 +82,24 @@ final class WorkTimeTests: XCTestCase {
         let clipped = try XCTUnwrap(WorkLogAnalytics.clip([s], to: morning).first)
         XCTAssertEqual(clipped.spans, [s.spans[1]])
         XCTAssertEqual(clipped.activeSeconds, 360)
+
+        // 기간 보고서는 이틀에 나뉜 세션을 한 줄로 합쳐도 두 날의 AI 일한 시간을 모두 센다.
+        let reportEntries: [Double] = WorkLogAnalytics.entriesBySession(WorkLogAnalytics.days([s])).map(\.activeSeconds)
+        XCTAssertEqual(reportEntries, [2820])
+    }
+
+    private func storeURL() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("worktime-\(UUID().uuidString)/worklog.sqlite")
+    }
+
+    private func rawSpans(_ url: URL) throws -> String? {
+        var text: String?
+        try SQLiteReader(writablePath: url.path).query("SELECT spans FROM sessions") { text = $0.string(0) }
+        return text
     }
 
     func testStoreKeepsSpans() throws {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("worktime-\(UUID().uuidString)/worklog.sqlite")
+        let url = storeURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         var s = WorkSession(tool: .codex, sessionId: "c", title: "t", cwd: "/p", projectPath: "/p", start: t0, end: t0.addingTimeInterval(900),
                             prompts: [PromptEntry(date: t0, text: "요청")])
@@ -96,6 +110,72 @@ final class WorkTimeTests: XCTestCase {
         let loaded = try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id])
         XCTAssertEqual(loaded.spans, s.spans)
         XCTAssertEqual(loaded.activeSeconds, 960)
+        // start·end 칸처럼 1970년 기준 초로 둔다.
+        XCTAssertEqual(try rawSpans(url), "[[1791000000,1791000900]]")
+    }
+
+    func testOldSpanFormatIsRewrittenOnOpen() throws {
+        let url = storeURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var s = WorkSession(tool: .codex, sessionId: "c", title: "t", cwd: "/p", projectPath: "/p", start: t0, end: t0.addingTimeInterval(900),
+                            prompts: [PromptEntry(date: t0, text: "요청")])
+        s.spans = [span(0, 900)]
+        try WorkLogStore(url: url).save(sessions: [s], sources: [:], notesByRoot: [:])
+        // 1.7.0 이 남긴 모양: {start, end}, 2001년 기준 초 (1_791_000_000 - 978_307_200)
+        try SQLiteReader(writablePath: url.path).exec(#"UPDATE sessions SET spans = '[{"end":812693700,"start":812692800}]'"#)
+
+        let loaded = try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id])
+        XCTAssertEqual(loaded.spans, s.spans)
+        XCTAssertEqual(try rawSpans(url), "[[1791000000,1791000900]]")
+    }
+
+    func testArchivedSessionWithoutSpansKeepsItsStoredTime() throws {
+        let url = storeURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let cal = Calendar.current
+        let day1 = cal.date(from: DateComponents(year: 2026, month: 10, day: 20, hour: 10))!
+        let day2 = cal.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 10))!
+        let s = WorkSession(tool: .claudeCode, sessionId: "old", title: "t", cwd: "/p", projectPath: "/p", start: day1, end: day2,
+                            prompts: [PromptEntry(date: day1, text: "첫날"), PromptEntry(date: day2, text: "이튿날")])
+        try WorkLogStore(url: url).save(sessions: [s], sources: [:], notesByRoot: [:])
+        // 1.7 전 보관본: 구간은 없고, 그때 기록 줄마다 잰 작업 시간 20분만 남아 있다.
+        try SQLiteReader(writablePath: url.path).exec("UPDATE sessions SET active_seconds = 1200, spans = '[]'")
+
+        // 요청 시각으로만 재면 1분 + 1분이지만, 남아 있던 20분을 날마다 같은 비율로 나눠 쓴다.
+        let loaded = try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id])
+        XCTAssertEqual(loaded.activeSeconds, 1200)
+        let perDay: [Double] = WorkLogAnalytics.days([loaded]).map(\.activeSeconds)
+        XCTAssertEqual(perDay, [600, 600])
+
+        // 다시 읽어도 구간이 생기지 않으면 그대로 이어 받고, 다시 저장해도 줄지 않는다.
+        var reread = loaded
+        reread.archivedTimeScale = nil
+        let merged = reread.merged(withArchived: loaded)
+        XCTAssertEqual(merged, loaded)
+        try WorkLogStore(url: url).save(sessions: [merged], sources: [:], notesByRoot: [:])
+        XCTAssertEqual(try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id]).activeSeconds, 1200)
+
+        // 입력 기록만 남은 세션은 예전에도 요청 시각으로 쟀으니 저장값을 따르지 않는다.
+        try SQLiteReader(writablePath: url.path).exec("UPDATE sessions SET has_transcript = 0, active_seconds = 1200")
+        XCTAssertEqual(try XCTUnwrap(try WorkLogStore(url: url).loadSessions()[s.id]).activeSeconds, 120)
+    }
+
+    func testLMStudioCountsUntilTheLastChange() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("lmstudio-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let message: [String: Any] = ["versions": [["role": "user", "content": [["type": "text", "text": "질문"]]]], "currentlySelectedVersion": 0]
+        let data = try JSONSerialization.data(withJSONObject: ["createdAt": t0.timeIntervalSince1970 * 1000, "messages": [message]])
+        // 만든 뒤 9분 동안 주고받으면 1분 + 9분, 두 시간 뒤에 다시 고쳤으면 1분씩 두 번
+        let changedAfter: [TimeInterval] = [540, 7200]
+        let expected: [Double] = [600, 120]
+        for (offset, seconds) in zip(changedAfter, expected) {
+            let url = dir.appendingPathComponent("\(Int(offset)).conversation.json")
+            try data.write(to: url)
+            try FileManager.default.setAttributes([.modificationDate: t0.addingTimeInterval(offset)], ofItemAtPath: url.path)
+            let s = try XCTUnwrap(LMStudioSource(root: dir).parse(url))
+            XCTAssertEqual(s.activeSeconds, seconds)
+        }
     }
 
     func testMergeKeepsSpansOfLostPrompts() {

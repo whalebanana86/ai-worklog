@@ -35,6 +35,8 @@ struct AIWorkLogApp: App {
                 .task {
                     // Demo mode stays offline and never contacts the release API.
                     guard !ProcessInfo.processInfo.arguments.contains("--demo") else { return }
+                    let installed = Bundle.main.bundleURL
+                    Task.detached(priority: .utility) { UpdateInstallation.removeLeftoverCandidates(besides: installed) }
                     await updater.check(interactive: false)
                     updater.readInstallationResult()
                 }
