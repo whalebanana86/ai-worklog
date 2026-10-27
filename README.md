@@ -289,6 +289,7 @@ scripts/build_app.sh --remove-auto-sync     # 자동 보관 끄기
 앱을 오래 안 열면 그 사이 Claude Code 가 지운 대화는 보관함에 들어가지 못한다. 그게 걱정되면 `--auto-sync` 를 켠다 (앱 설정의 "자동 보관"과 같은 것).
 `~/Library/LaunchAgents` 폴더가 관리자(root) 것이면(다른 프로그램 설치기가 만든 경우) 켜지지 않는다. 그때는 `sudo chown $USER ~/Library/LaunchAgents` 를 한 번 실행한다.
 개발자 인증서 없이 임시 서명하므로 내 맥에서 쓰는 용도다.
+빌드한 앱·캡처 사본은 `build.noindex/` 에 생긴다. 이름이 `.noindex` 로 끝나는 폴더는 Spotlight 가 색인하지 않아서 설치한 앱만 검색된다.
 
 설치한 앱 하나로 터미널 명령도 된다 (설치 스크립트·자동 보관이 이걸 쓴다):
 
@@ -330,7 +331,7 @@ scripts/screenshot.sh /tmp/a.png --demo --screen skills   # 앱 창만 캡처 (�
 `--tool-colors claudeCode=8E44AD,codex=2E9E4F`(이번에만 도구 색 바꾸기, 저장하지 않음), `--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기).
 
 README 그림·시연 영상 다시 만들기 (지어낸 기록으로만 찍는다).
-캡처 스크립트는 앱 ID 만 바꾼 사본(`build/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`)을 빈 설정으로 띄워 찍고 끈다.
+캡처 스크립트는 앱 ID 만 바꾼 사본(`build.noindex/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`)을 빈 설정으로 띄워 찍고 끈다.
 켜 둔 앱을 끄지 않고, 그 창·패널 크기 설정도 건드리지 않는다. 창 자리는 `FRAME=x,y,w,h` 로 바꾼다.
 
 ```bash
@@ -344,7 +345,7 @@ scripts/make_demo_video.sh ko         # docs/demo-ko.gif·mp4 (앱 창만 Screen
 #### 배포 (GitHub Releases)
 
 `v1.2.3` 같은 태그를 올리면 GitHub Actions(`.github/workflows/release.yml`)가 Apple 실리콘·인텔 겸용 앱을 만들어 DMG·zip 으로 Releases 에 올린다.
-로컬에서는 `scripts/package_release.sh 1.2.3` → `build/release/`.
+로컬에서는 `scripts/package_release.sh 1.2.3` → `build.noindex/release/`.
 
 서명·공증: 저장소 **Settings → Secrets and variables → Actions** 에 아래 값을 넣으면 Developer ID 로 서명하고 Apple 공증까지 받는다. 없으면 임시 서명으로 올린다.
 

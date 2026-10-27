@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 LANG_CODE="${1:-ko}"
 OUT="docs/screenshots"; [ "$LANG_CODE" = ko ] || OUT="docs/screenshots/$LANG_CODE"
-mkdir -p "$OUT" build/shots
+mkdir -p "$OUT" build.noindex/shots
 source scripts/demo_app.sh
 trap demo_finish EXIT
 demo_prepare
@@ -15,7 +15,7 @@ F="${FRAME:-60,0,1400,940}"
 P="$HOME/Projects/todo-app"
 # macOS 가 붙이는 글(설정 창 제목 등)도 그 언어로 나오게 -AppleLanguages 를 함께 준다.
 SYS=(-AppleLanguages "($LANG_CODE)")
-shot() { local name="$1"; shift; scripts/screenshot.sh "build/shots/$name.png" --demo --lang "$LANG_CODE" "${SYS[@]}" "$@" >/dev/null; sips -Z 1600 "build/shots/$name.png" --out "$OUT/$name.png" >/dev/null; }
+shot() { local name="$1"; shift; scripts/screenshot.sh "build.noindex/shots/$name.png" --demo --lang "$LANG_CODE" "${SYS[@]}" "$@" >/dev/null; sips -Z 1600 "build.noindex/shots/$name.png" --out "$OUT/$name.png" >/dev/null; }
 shot dashboard --period month --frame "$F"
 shot project --screen "project=$P" --period month --frame "$F"
 shot session --session demo-todo-app-2 --frame "$F"

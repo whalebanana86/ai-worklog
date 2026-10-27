@@ -42,9 +42,9 @@ Short description: **A Mac app to gather your AI work and rediscover what you ac
 - 미리보기: `docs/brand/app-icon.png` (512px)
 
 ```bash
-swift scripts/make_icon.swift build/brand
-python3 scripts/compress_icon.py build/brand/AppIcon.iconset Support/AppIcon.icns
-cp build/brand/AppIcon.iconset/icon_512x512.png docs/brand/app-icon.png
+swift scripts/make_icon.swift build.noindex/brand
+python3 scripts/compress_icon.py build.noindex/brand/AppIcon.iconset Support/AppIcon.icns
+cp build.noindex/brand/AppIcon.iconset/icon_512x512.png docs/brand/app-icon.png
 ```
 
 앱 이름 변경 후에도 bundle ID `local.aiworklog`, 실행 파일 `AIWorkLog`, 저장 폴더 `AIWorkLog`,

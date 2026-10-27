@@ -4,7 +4,7 @@
 # 빌드한 앱을 그대로 띄우면 앱 ID(local.aiworklog)가 설치된 앱과 같아서
 #   - 끌 때 `pkill -x AIWorkLog` 가 켜 두고 쓰던 앱까지 끄고,
 #   - 창·사이드바·정보 패널 크기 같은 설정을 설치된 앱의 설정 위에 덮어쓴다.
-# 그래서 앱 ID 만 바꾼 사본(build/demo/AIWorkLogDemo.app, local.aiworklog.demo)을 띄우고, 그 사본만 골라 끈다.
+# 그래서 앱 ID 만 바꾼 사본(build.noindex/demo/AIWorkLogDemo.app, local.aiworklog.demo)을 띄우고, 그 사본만 골라 끈다.
 # 사본은 띄울 때마다 빈 설정으로 시작하고, 끝나면 그 설정을 지운다.
 #
 #   demo_prepare            빌드한 앱으로 사본을 만든다 (앱이 바뀌었을 때만 다시)
@@ -13,18 +13,18 @@
 #   demo_finish             사본을 끄고 그 설정을 지운다 (trap demo_finish EXIT 로 쓴다)
 
 DEMO_ID=local.aiworklog.demo
-DEMO_APP=build/demo/AIWorkLogDemo.app
+DEMO_APP=build.noindex/demo/AIWorkLogDemo.app
 # 경로에 한글이 섞이면 pgrep -f 가 못 찾을 때가 있어 사본 이름은 영어로 둔다.
 DEMO_MATCH='AIWorkLogDemo\.app/Contents/MacOS/AIWorkLog'
 DEMO_PID=""
 
 demo_prepare() {
-  local src="build/이걸내가.app" stamp=build/demo/.prepared
+  local src="build.noindex/이걸내가.app" stamp=build.noindex/demo/.prepared
   [ -d "$src" ] || scripts/build_app.sh >/dev/null
   if [ -d "$DEMO_APP" ] && [ -f "$stamp" ] && [ -z "$(find "$src" -newer "$stamp" -print -quit)" ]; then return 0; fi
   demo_quit
   rm -rf "$DEMO_APP"
-  mkdir -p build/demo
+  mkdir -p build.noindex/demo
   ditto "$src" "$DEMO_APP"
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $DEMO_ID" "$DEMO_APP/Contents/Info.plist"
   codesign --force --sign - "$DEMO_APP" >/dev/null 2>&1

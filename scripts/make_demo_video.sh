@@ -6,16 +6,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 LANG_CODE="${1:-ko}"
-mkdir -p build docs
-[ -x build/record_window ] && [ build/record_window -nt scripts/record_window.swift ] || \
-  swiftc -O -parse-as-library scripts/record_window.swift -o build/record_window
+mkdir -p build.noindex docs
+[ -x build.noindex/record_window ] && [ build.noindex/record_window -nt scripts/record_window.swift ] || \
+  swiftc -O -parse-as-library scripts/record_window.swift -o build.noindex/record_window
 # 앱 ID 만 바꾼 사본으로 녹화해서 켜 둔 앱은 그대로 둔다 (scripts/demo_app.sh). 창 자리는 FRAME=x,y,w,h 로 바꾼다.
 source scripts/demo_app.sh
 trap demo_finish EXIT
 demo_prepare
 demo_open --demo --lang "$LANG_CODE" --tour --frame "${FRAME:-60,0,1400,900}"
-RAW="build/demo-$LANG_CODE-raw.mp4"
-build/record_window "$DEMO_PID" 24 "$RAW" >/dev/null
+RAW="build.noindex/demo-$LANG_CODE-raw.mp4"
+build.noindex/record_window "$DEMO_PID" 24 "$RAW" >/dev/null
 demo_quit
 
 # 둘러보기는 창이 뜨고 1.5초 뒤 시작해 20초쯤 걸린다.

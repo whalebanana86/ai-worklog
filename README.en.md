@@ -217,7 +217,7 @@ scripts/make_screenshots.sh en      # README screenshots from sample data → do
 scripts/make_demo_video.sh en       # README demo video → docs/demo-en.gif/mp4 (records only the app window; needs ffmpeg)
 ```
 
-The capture scripts launch a copy of the app with its own bundle ID (`build/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`) and empty settings, then quit it. Your running copy stays open and its window and panel sizes are left alone. Set `FRAME=x,y,w,h` to move the window.
+The capture scripts launch a copy of the app with its own bundle ID (`build.noindex/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`) and empty settings, then quit it. Your running copy stays open and its window and panel sizes are left alone. Set `FRAME=x,y,w,h` to move the window.
 
 Launch options for testing: `--demo` (sample data; never touches your real records or calls an AI), `--lang ko|en|ja`, `--screen timeline|prompts|skills|project=<path>`, `--period today|week|month|quarter|all`, `--session <id>`, `--search <text>`, `--settings`, `--dark` (this run only, not saved), `--frame x,y,w,h`, `--no-ai`, `--tab worklog|sessions|setup|notes`, `--tools codex,lmStudio`, `--tool-colors claudeCode=8E44AD,codex=2E9E4F` (this run only, not saved), `--tour`.
 
@@ -230,7 +230,7 @@ Layout:
 
 ### Releases, signing and notarization
 
-Pushing a tag like `v1.2.3` runs `.github/workflows/release.yml`, which builds a universal (Apple silicon + Intel) app and uploads a DMG and zip to GitHub Releases. Locally: `scripts/package_release.sh 1.2.3` → `build/release/`.
+Pushing a tag like `v1.2.3` runs `.github/workflows/release.yml`, which builds a universal (Apple silicon + Intel) app and uploads a DMG and zip to GitHub Releases. Locally: `scripts/package_release.sh 1.2.3` → `build.noindex/release/`.
 
 To sign with a Developer ID and notarize, add these repository secrets (**Settings → Secrets and variables → Actions**). Without them, releases are ad-hoc signed.
 
@@ -255,7 +255,7 @@ Records and preferences stay in place. Replacement or restart-request failures r
 Finish record loading, AI summaries and report editing before installing. Read-only install locations or releases without a verifiable ZIP use **Open Download Page** for manual installation.
 The app checks at launch, but installation requires clicking the install button. Versions that only opened a download page need one manual upgrade to acquire this installer.
 The app also checks at launch and shows the available version in the app menu.
-Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`.
+Local builds use the nearest Git version tag. The install script updates an existing app in `/Applications`, otherwise it installs into `~/Applications`. Built apps and capture copies go to `build.noindex/`; Spotlight skips folders ending in `.noindex`, so only the installed app shows up in search.
 
 ### Hide projects from the sidebar
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # "이걸내가.app" 을 만든다.
-#   scripts/build_app.sh                         build/ 에 앱만 만들기
+#   scripts/build_app.sh                         build.noindex/ 에 앱만 만들기
 #   scripts/build_app.sh --install               ~/Applications 에 설치하고 보관함을 미리 채우기 (+ 지난 날짜 AI 요약)
 #   scripts/build_app.sh --install --no-summary  AI 요약은 미리 만들지 않기 (앱에서 날짜를 볼 때 그날만 요약)
 #   scripts/build_app.sh --install --auto-sync   + 앱을 안 열어도 6시간마다 보관함 갱신 (launchd)
@@ -10,7 +10,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 NAME="이걸내가"
-APP="build/$NAME.app"
+# 이름이 .noindex 로 끝나는 폴더는 Spotlight 가 색인하지 않아서, 빌드한 사본이 설치된 앱과 함께 검색되지 않는다.
+APP="build.noindex/$NAME.app"
 # Update the existing system-wide copy when present, so Finder does not keep opening an old app.
 INSTALL_DIR="$HOME/Applications"
 LEGACY_NAME="AI 작업일지"
@@ -42,8 +43,8 @@ fi
 
 # 아이콘이 없으면 한 번 그리고 256색으로 줄여 묶는다 (PIL 이 없으면 줄이지 않고 묶기만).
 if [ ! -f Support/AppIcon.icns ]; then
-  swift scripts/make_icon.swift build >/dev/null
-  python3 scripts/compress_icon.py build/AppIcon.iconset Support/AppIcon.icns
+  swift scripts/make_icon.swift build.noindex >/dev/null
+  python3 scripts/compress_icon.py build.noindex/AppIcon.iconset Support/AppIcon.icns
 fi
 
 # 크기 우선 최적화(-Osize). 일반 release 빌드와 섞이지 않게 빌드 폴더를 따로 쓴다.

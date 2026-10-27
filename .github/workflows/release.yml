@@ -89,7 +89,7 @@ jobs:
           else
             SIGNED="Not notarized yet: on first launch open **System Settings → Privacy & Security → Open Anyway**, or run \`xattr -dr com.apple.quarantine \"/Applications/이걸내가.app\"\`. / 아직 공증 전이라 처음 열 때 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 눌러 주세요."
           fi
-          cat > build/release/NOTES.md <<NOTES
+          cat > build.noindex/release/NOTES.md <<NOTES
           **이걸내가 — AI와 함께한 일**
           **I Did That? — What I did with AI**
           **これ、私が？ — AIと一緒にやったこと**
@@ -102,18 +102,18 @@ jobs:
 
           See [README](https://github.com/${{ github.repository }}#readme) · [English README](https://github.com/${{ github.repository }}/blob/main/README.en.md)
           NOTES
-          sed -i '' 's/^          //' build/release/NOTES.md
+          sed -i '' 's/^          //' build.noindex/release/NOTES.md
           if [ -f "docs/releases/$VERSION.md" ]; then
-            cat "docs/releases/$VERSION.md" build/release/NOTES.md > build/release/NOTES.full.md
-            mv build/release/NOTES.full.md build/release/NOTES.md
+            cat "docs/releases/$VERSION.md" build.noindex/release/NOTES.md > build.noindex/release/NOTES.full.md
+            mv build.noindex/release/NOTES.full.md build.noindex/release/NOTES.md
           fi
 
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ env.VERSION }}
           name: 이걸내가 / I Did That? ${{ env.VERSION }}
-          body_path: build/release/NOTES.md
+          body_path: build.noindex/release/NOTES.md
           files: |
-            build/release/*.dmg
-            build/release/*.zip
-            build/release/SHA256SUMS.txt
+            build.noindex/release/*.dmg
+            build.noindex/release/*.zip
+            build.noindex/release/SHA256SUMS.txt

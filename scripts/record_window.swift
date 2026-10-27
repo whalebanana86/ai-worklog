@@ -1,6 +1,6 @@
 // 앱 창 하나만 영상으로 찍는다 (ScreenCaptureKit, macOS 15+). 다른 창·바탕화면은 찍히지 않는다.
-//   빌드: swiftc -O -parse-as-library scripts/record_window.swift -o build/record_window
-//   사용: build/record_window <pid> <초> <저장할 .mp4>
+//   빌드: swiftc -O -parse-as-library scripts/record_window.swift -o build.noindex/record_window
+//   사용: build.noindex/record_window <pid> <초> <저장할 .mp4>
 // README 시연 영상: scripts/make_demo_video.sh 가 부른다.
 import AppKit
 import AVFoundation
