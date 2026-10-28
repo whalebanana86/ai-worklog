@@ -20,7 +20,7 @@ struct DashboardView: View {
                             .frame(height: 210)
                     }
                     CardPair {
-                        Card(title: L("프로젝트별 작업 시간"), subtitle: L("요청을 주고받은 시간 기준"), fillHeight: true) {
+                        Card(title: L("프로젝트별 작업 시간"), subtitle: L("AI 가 일한 시간 포함"), fillHeight: true) {
                             ProjectBars(times: Array(WorkLogAnalytics.projectTimes(model.days).prefix(8)))
                         }
                     } second: {
