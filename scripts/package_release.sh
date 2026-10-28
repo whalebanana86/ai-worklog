@@ -4,6 +4,7 @@
 # Apple 개발자 인증서가 있으면 서명·공증까지 한다 (없으면 임시 서명).
 #   SIGN_IDENTITY="Developer ID Application: 이름 (TEAMID)"   서명
 #   APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD                 공증 (앱 암호: appleid.apple.com 에서 만든 것)
+#   UPDATE_SIGNING_KEY                                          앱 안 업데이트용 배포 서명 → .zip.sig (scripts/sign_update.swift)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:?버전을 주세요. 예: scripts/package_release.sh 1.0.0}"
@@ -42,6 +43,12 @@ fi
 rm -rf "$OUT" build.noindex/dmg
 mkdir -p "$OUT" build.noindex/dmg
 ditto -c -k --keepParent "$APP" "$OUT/$BASE.zip"
+# 설치된 앱은 배포 서명(.sig)이 맞는 zip 만 앱 안에서 설치한다. 키가 없으면 확인용으로 서명 없이 만든다.
+if [ -n "${UPDATE_SIGNING_KEY:-}" ]; then
+  swift scripts/sign_update.swift "$OUT/$BASE.zip"
+else
+  echo "UPDATE_SIGNING_KEY 가 없어 업데이트 서명(.sig)은 건너뛰었어요 (앱 안 업데이트에는 쓸 수 없어요)."
+fi
 # DMG: 앱과 '응용 프로그램' 바로 가기를 나란히 두어 끌어다 놓으면 설치되게.
 cp -R "$APP" build.noindex/dmg/
 ln -s /Applications build.noindex/dmg/Applications

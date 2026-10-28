@@ -24,6 +24,26 @@ final class UpdateInstallationTests: XCTestCase {
         XCTAssertNil(UpdateArchive.sha256Digest("md5:" + String(repeating: "a", count: 64)))
     }
 
+    func testUpdateMustBeSignedWithReleaseKey() throws {
+        let root = try workspace(); defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("update.zip")
+        try Data("release bytes".utf8).write(to: file)
+        let key = Curve25519.Signing.PrivateKey()
+        let publicKey = key.publicKey.rawRepresentation.base64EncodedString()
+        // Same shape as scripts/sign_update.swift writes: base64 and a newline.
+        let signature = Data((try key.signature(for: Data("release bytes".utf8)).base64EncodedString() + "\n").utf8)
+        try UpdateArchive.verifySignature(file, signature: signature, publicKey: publicKey)
+
+        let otherKey = Curve25519.Signing.PrivateKey().publicKey.rawRepresentation.base64EncodedString()
+        XCTAssertThrowsError(try UpdateArchive.verifySignature(file, signature: signature, publicKey: otherKey))
+        XCTAssertThrowsError(try UpdateArchive.verifySignature(file, signature: Data("not a signature".utf8), publicKey: publicKey))
+        XCTAssertThrowsError(try UpdateArchive.verifySignature(file, signature: Data(), publicKey: publicKey))
+        try Data("swapped bytes".utf8).write(to: file)
+        XCTAssertThrowsError(try UpdateArchive.verifySignature(file, signature: signature, publicKey: publicKey))
+        // The app ships with a usable release key.
+        XCTAssertNoThrow(try Curve25519.Signing.PublicKey(rawRepresentation: Data(base64Encoded: UpdateArchive.signingKey) ?? Data()))
+    }
+
     func testRejectsTraversalAndSymlinksBeforeExtraction() throws {
         for entry in ["/tmp/escape", "이걸내가.app/../escape", "other.app/Contents/Info.plist", "__MACOSX/../../escape", "이걸내가.app/a\\b"] {
             XCTAssertFalse(UpdateArchive.isSafeEntry(entry), entry)
@@ -126,6 +146,11 @@ final class UpdateInstallationTests: XCTestCase {
         let work = try workspace(); defer { try? FileManager.default.removeItem(at: work) }
         let zip = source.appendingPathComponent("update.zip")
         try UpdateArchive.verify(zip, digest: asset.digest, size: asset.size)
+        // Signed releases come with update.zip.sig; fixtures of older releases have none.
+        let signature = source.appendingPathComponent("update.zip.sig")
+        if FileManager.default.fileExists(atPath: signature.path) {
+            try UpdateArchive.verifySignature(zip, signature: Data(contentsOf: signature))
+        }
         let app = try UpdateArchive.extract(zip, into: work.appendingPathComponent("unpacked"))
         try UpdateAppValidation.validate(app, version: release.version, team: nil)
         XCTAssertThrowsError(try UpdateAppValidation.validate(app, version: release.version, team: "DIFFERENT-TEAM"))

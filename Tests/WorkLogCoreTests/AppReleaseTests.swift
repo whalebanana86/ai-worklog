@@ -51,4 +51,24 @@ final class AppReleaseTests: XCTestCase {
         XCTAssertNil(try asset(url.replacingOccurrences(of: "github.com", with: "example.com"), digest).updateAsset)
     }
 
+    func testSignatureIsPinnedNextToTheZip() throws {
+        func release(_ files: [(name: String, size: Int, tag: String)]) throws -> AppRelease {
+            let assets = files.map { file -> [String: Any] in
+                ["name": file.name, "size": file.size,
+                 "browser_download_url": "https://github.com/whalebanana86/ai-worklog/releases/download/\(file.tag)/\(file.name)"]
+            }
+            let data = try JSONSerialization.data(withJSONObject: [
+                "tag_name": "v1.8.0", "html_url": "https://github.com/whalebanana86/ai-worklog/releases/tag/v1.8.0",
+                "draft": false, "prerelease": false, "assets": assets
+            ])
+            return try JSONDecoder().decode(AppRelease.self, from: data)
+        }
+        let name = "Igeolnaega-1.8.0-macOS.zip.sig"
+        XCTAssertEqual(try release([(name, 89, "v1.8.0")]).signatureAsset?.name, name)
+        XCTAssertNil(try release([(name, 89, "v1.7.1")]).signatureAsset)
+        XCTAssertNil(try release([(name, 4096, "v1.8.0")]).signatureAsset)
+        XCTAssertNil(try release([("Igeolnaega-1.7.1-macOS.zip.sig", 89, "v1.8.0")]).signatureAsset)
+        XCTAssertNil(try release([]).signatureAsset)
+    }
+
 }

@@ -4,6 +4,7 @@
 #   MACOS_CERT_PASSWORD   그 .p12 의 암호
 #   MACOS_SIGN_IDENTITY   예) Developer ID Application: Your Name (TEAMID)
 #   APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD   공증용 (앱 암호는 appleid.apple.com 에서 만든다)
+# UPDATE_SIGNING_KEY 는 꼭 있어야 한다: 설치된 앱은 이 키로 서명한 zip(.sig)만 앱 안에서 설치한다.
 name: Release
 
 on:
@@ -26,6 +27,13 @@ jobs:
     steps:
       # 남의 액션은 태그가 아니라 커밋으로 고정한다 (태그는 나중에 다른 코드로 옮길 수 있다).
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check update signing key
+        # 키 없이 올린 릴리즈는 앱 안 업데이트로 설치되지 않으니 빌드 전에 멈춘다.
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          [ -n "$UPDATE_SIGNING_KEY" ] || { echo "::error::UPDATE_SIGNING_KEY secret 이 없어요. 설치된 앱은 이 키로 서명한 업데이트만 받아요 (README 배포 참고)."; exit 1; }
 
       - name: Xcode
         # 러너에 깔린 Xcode 중 가장 새것을 쓴다 (앱은 Swift 6 컴파일러·macOS 14+ SDK 로 만든다).
@@ -68,6 +76,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
           # 손으로 넣은 버전 글은 스크립트에 바로 끼우지 않고 환경 변수로 넘긴다 (끼우면 셸 명령으로 해석된다).
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
@@ -116,4 +125,5 @@ jobs:
           files: |
             build.noindex/release/*.dmg
             build.noindex/release/*.zip
+            build.noindex/release/*.zip.sig
             build.noindex/release/SHA256SUMS.txt

@@ -104,7 +104,7 @@ DMG로 직접 설치할 때는 새 앱을 응용 프로그램에 넣은 뒤 예�
 ### 앱에서 업데이트 확인
 
 앱 메뉴 **이걸내가 → 업데이트 확인…**에서 GitHub의 최신 정식 릴리스를 확인해요.
-새 버전이 있으면 **설치하고 다시 시작**을 눌러요. ZIP 파일을 다운로드하고 GitHub의 SHA-256, 앱 서명·이름·버전·실행 환경을 검증한 뒤 앱을 교체하고 다시 시작해요.
+새 버전이 있으면 **설치하고 다시 시작**을 눌러요. ZIP 파일을 다운로드하고 GitHub의 SHA-256, 배포 키 서명, 앱 서명·이름·버전·실행 환경을 검증한 뒤 앱을 교체하고 다시 시작해요.
 기존 기록·설정과 자동 보관 경로는 유지돼요. 교체나 재시작 요청이 실패하면 이전 앱으로 복구하고, 성공하면 이전 앱은 휴지통으로 옮겨요.
 기록을 읽거나 AI 요약·보고서 편집 중이면 작업을 마친 뒤 업데이트해 주세요. 설치 위치에 쓰기 권한이 없거나 검증 가능한 파일이 없는 릴리스는 **다운로드 페이지 열기**로 직접 설치할 수 있어요.
 앱을 시작할 때도 확인하지만, 사용자가 설치 버튼을 누르기 전에는 다운로드하거나 앱을 교체하지 않아요.
@@ -346,6 +346,9 @@ scripts/make_demo_video.sh ko         # docs/demo-ko.gif·mp4 (앱 창만 Screen
 
 `v1.2.3` 같은 태그를 올리면 GitHub Actions(`.github/workflows/release.yml`)가 Apple 실리콘·인텔 겸용 앱을 만들어 DMG·zip 으로 Releases 에 올린다.
 로컬에서는 `scripts/package_release.sh 1.2.3` → `build.noindex/release/`.
+
+업데이트 서명: 저장소 Secret `UPDATE_SIGNING_KEY` 는 꼭 있어야 한다 (없으면 릴리즈 워크플로가 빌드 전에 멈춘다). 설치된 앱은 이 키로 서명한 zip(`Igeolnaega-<버전>-macOS.zip.sig` 가 함께 올라감)만 앱 안에서 설치하고, 짝인 공개키는 `Sources/WorkLogCore/UpdateSigningKey.swift` 에 들어 있다.
+새 키는 `swift scripts/sign_update.swift --new-key <파일>` 로 만든다 (비밀키는 그 파일에만 쓰고 공개키만 출력). 비밀키를 잃거나 바꾸면 이미 설치된 앱은 그 뒤 업데이트를 앱 안에서 받지 못하고 DMG 로 다시 설치해야 하니, 비밀키는 따로 백업해 둔다.
 
 서명·공증: 저장소 **Settings → Secrets and variables → Actions** 에 아래 값을 넣으면 Developer ID 로 서명하고 Apple 공증까지 받는다. 없으면 임시 서명으로 올린다.
 

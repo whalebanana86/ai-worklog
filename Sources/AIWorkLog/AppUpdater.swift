@@ -17,7 +17,9 @@ final class AppUpdater {
     func attachUpdateWindow(_ window: NSWindow?) { updateWindow = window }
     let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
 
-    var canAutomaticallyInstall: Bool { available?.updateAsset != nil && Bundle.main.bundleURL.pathExtension == "app" }
+    var canAutomaticallyInstall: Bool {
+        available?.updateAsset != nil && available?.signatureAsset != nil && Bundle.main.bundleURL.pathExtension == "app"
+    }
 
     func check(interactive: Bool) async {
         guard !isChecking, !isInstalling else { return }
@@ -51,7 +53,10 @@ final class AppUpdater {
     func install(canQuit: @MainActor () -> Bool) async {
         guard !isInstalling, !isChecking, let release = available else { return }
         guard canQuit() else { error = L("기록 읽기, AI 요약과 보고서 편집을 마친 뒤 업데이트해 주세요."); return }
-        guard let asset = release.updateAsset else { error = AppUpdateError.invalidAsset.localizedDescription; return }
+        guard let asset = release.updateAsset, let signatureAsset = release.signatureAsset else {
+            error = AppUpdateError.invalidAsset.localizedDescription
+            return
+        }
         isInstalling = true
         error = nil
         progress = nil
@@ -62,6 +67,12 @@ final class AppUpdater {
         var prepared: UpdatePlan?
         do {
             try fm.createDirectory(at: workspace, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+            var signatureRequest = URLRequest(url: signatureAsset.browserDownloadURL, timeoutInterval: 30)
+            signatureRequest.setValue("AIWorkLog/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+            let (signature, signatureResponse) = try await URLSession.shared.data(for: signatureRequest)
+            guard (signatureResponse as? HTTPURLResponse)?.statusCode == 200, signature.count <= 1024 else {
+                throw AppUpdateError.unsignedUpdate
+            }
             var request = URLRequest(url: asset.browserDownloadURL, timeoutInterval: 300)
             request.setValue("AIWorkLog/\(currentVersion)", forHTTPHeaderField: "User-Agent")
             let updater = self
@@ -84,6 +95,7 @@ final class AppUpdater {
             let target = Bundle.main.bundleURL
             let plan = try await Task.detached(priority: .userInitiated) {
                 try UpdateArchive.verify(zip, digest: asset.digest, size: asset.size)
+                try UpdateArchive.verifySignature(zip, signature: signature)
                 let app = try UpdateArchive.extract(zip, into: workspace.appendingPathComponent("unpacked", isDirectory: true))
                 return try UpdateInstallation.prepare(app: app, target: target, workspace: workspace, version: release.version)
             }.value

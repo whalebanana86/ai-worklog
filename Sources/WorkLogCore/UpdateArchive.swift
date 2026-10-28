@@ -2,13 +2,14 @@ import Foundation
 import CryptoKit
 
 public enum AppUpdateError: Error, LocalizedError {
-    case invalidAsset, checksumMismatch, invalidArchive, invalidApp, invalidSignature
+    case invalidAsset, checksumMismatch, unsignedUpdate, invalidArchive, invalidApp, invalidSignature
     case signingIdentityChanged, cannotWrite, parentStillRunning, invalidPlan, restartFailed
 
     public var errorDescription: String? {
         switch self {
         case .invalidAsset: return L("자동 설치할 수 있는 업데이트 파일이 없어요. 다운로드 페이지에서 설치해 주세요.")
         case .checksumMismatch: return L("다운로드한 파일의 검증 값이 맞지 않아요. 다시 다운로드해 주세요.")
+        case .unsignedUpdate: return L("업데이트 파일의 배포 서명이 맞지 않아요. 다운로드 페이지에서 설치해 주세요.")
         case .invalidArchive: return L("업데이트 압축 파일이 올바르지 않아요.")
         case .invalidApp: return L("업데이트 앱의 이름, 버전 또는 실행 환경을 확인하지 못했어요.")
         case .invalidSignature: return L("업데이트 앱의 서명을 확인하지 못했어요.")
@@ -39,6 +40,17 @@ public enum UpdateArchive {
         while let chunk = try input.read(upToCount: 1024 * 1024), !chunk.isEmpty { hash.update(data: chunk) }
         let result = hash.finalize().map { String(format: "%02x", $0) }.joined()
         guard result == expected else { throw AppUpdateError.checksumMismatch }
+    }
+
+    /// GitHub computes the digest from whatever was uploaded, so it cannot catch a swapped
+    /// release file. The ZIP must also carry an Ed25519 signature from the release key.
+    public static func verifySignature(_ file: URL, signature: Data, publicKey: String = signingKey) throws {
+        let data = try Data(contentsOf: file, options: .mappedIfSafe)
+        guard let text = String(data: signature, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let raw = Data(base64Encoded: text), raw.count == 64,
+              let keyData = Data(base64Encoded: publicKey),
+              let key = try? Curve25519.Signing.PublicKey(rawRepresentation: keyData),
+              key.isValidSignature(raw, for: data) else { throw AppUpdateError.unsignedUpdate }
     }
 
     /// Reject links and traversal *before* extraction. Current releases contain no symlinks.

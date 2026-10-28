@@ -232,6 +232,9 @@ Layout:
 
 Pushing a tag like `v1.2.3` runs `.github/workflows/release.yml`, which builds a universal (Apple silicon + Intel) app and uploads a DMG and zip to GitHub Releases. Locally: `scripts/package_release.sh 1.2.3` → `build.noindex/release/`.
 
+Update signing: the `UPDATE_SIGNING_KEY` repository secret is required (the release workflow stops before building without it). Installed apps only install a zip signed with this key in-app (`Igeolnaega-<version>-macOS.zip.sig` is uploaded next to it); the matching public key lives in `Sources/WorkLogCore/UpdateSigningKey.swift`.
+Create a new key with `swift scripts/sign_update.swift --new-key <file>` (the private key goes only into that file; only the public key is printed). If the private key is lost or replaced, installed apps can no longer update in-app and need the DMG, so keep a separate backup.
+
 To sign with a Developer ID and notarize, add these repository secrets (**Settings → Secrets and variables → Actions**). Without them, releases are ad-hoc signed.
 
 | Secret | Value |
@@ -250,7 +253,7 @@ To sign with a Developer ID and notarize, add these repository secrets (**Settin
 ### Check for updates
 
 Choose **I Did That? → Check for Updates…** to check the latest stable GitHub release.
-When an update is available, choose **Install and Restart**. The app downloads the release-bound ZIP, verifies GitHub's SHA-256 digest, code signature, app identity, version and compatibility, then replaces itself and restarts.
+When an update is available, choose **Install and Restart**. The app downloads the release-bound ZIP, verifies GitHub's SHA-256 digest, the release-key signature, code signature, app identity, version and compatibility, then replaces itself and restarts.
 Records and preferences stay in place. Replacement or restart-request failures restore the previous app; a successful restart request moves the previous app to the Trash.
 Finish record loading, AI summaries and report editing before installing. Read-only install locations or releases without a verifiable ZIP use **Open Download Page** for manual installation.
 The app checks at launch, but installation requires clicking the install button. Versions that only opened a download page need one manual upgrade to acquire this installer.

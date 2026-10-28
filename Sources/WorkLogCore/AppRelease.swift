@@ -51,16 +51,25 @@ public struct AppRelease: Decodable, Sendable {
 
     /// Only an exact, release-bound ZIP with a GitHub-provided digest can install.
     public var updateAsset: Asset? {
+        releaseFile("Igeolnaega-\(version)-macOS.zip", maxSize: 100 * 1024 * 1024, needsDigest: true)
+    }
+
+    /// The ZIP's release-key signature (`UpdateArchive.verifySignature`), published next to it.
+    public var signatureAsset: Asset? {
+        releaseFile("Igeolnaega-\(version)-macOS.zip.sig", maxSize: 1024, needsDigest: false)
+    }
+
+    private func releaseFile(_ name: String, maxSize: Int64, needsDigest: Bool) -> Asset? {
         guard isStable else { return nil }
         return assets.first { asset in
             let url = asset.browserDownloadURL
-            return asset.name == "Igeolnaega-\(version)-macOS.zip" &&
-                asset.size > 0 && asset.size <= 100 * 1024 * 1024 &&
+            return asset.name == name &&
+                asset.size > 0 && asset.size <= maxSize &&
                 url.scheme == "https" && url.host == "github.com" &&
                 url.user == nil && url.password == nil && url.port == nil &&
                 url.query == nil && url.fragment == nil &&
                 url.path == "/whalebanana86/ai-worklog/releases/download/\(tagName)/\(asset.name)" &&
-                UpdateArchive.sha256Digest(asset.digest) != nil
+                (!needsDigest || UpdateArchive.sha256Digest(asset.digest) != nil)
         }
     }
 
