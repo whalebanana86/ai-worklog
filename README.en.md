@@ -265,3 +265,7 @@ Local builds use the nearest Git version tag. The install script updates an exis
 Right-click a project and choose **Hide from Sidebar**. This preference persists across restarts.
 Use **Hidden Projects (N)** below the project list to restore an individual project or choose **Show All Projects Again**.
 Records, search results and statistics are preserved. Hiding the currently selected project returns to Overview.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -369,3 +369,7 @@ scripts/make_demo_video.sh ko         # docs/demo-ko.gif·mp4 (앱 창만 Screen
 - 비용은 Claude Code 기록에 비용 정보가 있는 세션만 나온다. Codex 는 토큰 합계만.
 - 고친 줄 수는 편집 내용으로 어림한 값이라 실제 diff 보다 조금 많다.
 - Gemini(Antigravity)는 기록이 protobuf 라 아직 읽지 않는다. Ollama CLI 기록은 시각이 없어 뺐다.
+
+## 라이선스
+
+MIT. 자세한 내용은 [LICENSE](LICENSE) 에 있어요.
