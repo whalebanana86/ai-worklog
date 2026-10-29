@@ -8,6 +8,8 @@ public enum Mascot {
         case idle
         /// 지난 기간보다 더 일했을 때. 웃는 눈과 반짝임.
         case proud
+        /// 새 소식이 있을 때 (새 버전). 눈을 크게 뜨고 머리 위에 느낌표 — 앱 아이콘의 코랄 느낌표.
+        case excited
         /// 기록을 모으는 중 (처음 읽을 때). 볼이 부풀었다 줄었다 하는 두 장.
         case gathering
         /// 아직 모은 기록이 없음.
@@ -29,7 +31,7 @@ public enum Mascot {
         "D": 0xD9694A,  // 테두리·코
         "K": 0x1B1F2E,  // 눈
         "B": 0x3156E8,  // 품에 안은 말풍선
-        "X": 0xFF956E,  // 몸 밖 표시 (?, Z, 반짝임)
+        "X": 0xFF956E,  // 몸 밖 표시 (?, !, Z, 반짝임)
     ]
 
     /// 그림 한 장과 그 장에 머무는 초.
@@ -54,6 +56,11 @@ public enum Mascot {
             let dim = canvas(head(eyes: .happy) + hugging, marks: [(3, 1, twinkle), (24, 1, twinkle)])
             return [Frame(rows: bright, seconds: 0.8), Frame(rows: dim, seconds: 0.8), Frame(rows: bright, seconds: 0.8), Frame(rows: dim, seconds: 0.8),
                     Frame(rows: hopped(bright), seconds: 0.14), Frame(rows: bright, seconds: 0.1), Frame(rows: hopped(bright), seconds: 0.14)]
+        case .excited:
+            // 통통 두 번 뛰고 잠깐 쉬었다 되풀이.
+            let still = canvas(head(eyes: .wide) + hugging, marks: [(25, 1, bang)])
+            return [Frame(rows: still, seconds: 1.2), Frame(rows: hopped(still), seconds: 0.14),
+                    Frame(rows: still, seconds: 0.1), Frame(rows: hopped(still), seconds: 0.14)]
         case .gathering:
             return [Frame(rows: canvas(head(eyes: .open) + hugging), seconds: 0.45),
                     Frame(rows: canvas(head(eyes: .happy, puffed: true) + hugging), seconds: 0.45)]
@@ -66,18 +73,45 @@ public enum Mascot {
         }
     }
 
+    /// 터미널용 그림 (자세의 첫 장): 위아래 두 칸을 반쪽 블록(▀▄) 한 글자로 그리고 24비트 색을 입힌다.
+    /// 둘레의 빈 칸은 잘라 낸다. 설치 스크립트 끝에 `AIWorkLog cli --moa` 로 보여 준다.
+    public static func terminalArt(_ pose: Pose) -> String {
+        let grid = frames(pose)[0].rows.map(Array.init)
+        let rows = grid.indices.filter { y in grid[y].contains { $0 != "." } }
+        let columns = grid.flatMap { row in row.indices.filter { row[$0] != "." } }
+        guard let top = rows.first, let bottom = rows.last, let left = columns.min(), let right = columns.max() else { return "" }
+        func rgb(_ v: Int) -> String { "\((v >> 16) & 255);\((v >> 8) & 255);\(v & 255)" }
+        let reset = "\u{1B}[0m"
+        var lines: [String] = []
+        for y in stride(from: top, through: bottom, by: 2) {
+            var line = ""
+            for x in left...right {
+                let upper = palette[grid[y][x]]
+                let lower = y + 1 <= bottom ? palette[grid[y + 1][x]] : nil
+                switch (upper, lower) {
+                case (nil, nil): line += " "
+                case let (u?, nil): line += "\u{1B}[38;2;\(rgb(u))m▀" + reset
+                case let (nil, l?): line += "\u{1B}[38;2;\(rgb(l))m▄" + reset
+                case let (u?, l?): line += "\u{1B}[38;2;\(rgb(u));48;2;\(rgb(l))m▀" + reset
+                }
+            }
+            lines.append(line)
+        }
+        return lines.joined(separator: "\n")
+    }
+
     /// 한 칸 위로 (통통 뛸 때). 맨 위 줄은 늘 비어 있어 잘리는 것이 없다.
     private static func hopped(_ rows: [String]) -> [String] {
         Array(rows.dropFirst()) + [String(repeating: ".", count: width)]
     }
 
     // 몸은 테두리 없이 22칸 너비로 그리고, canvas 가 테두리(D)를 둘러 가운데에 놓는다.
-    private enum Eyes { case open, happy, closed }
+    private enum Eyes { case open, wide, happy, closed }
 
     /// 귀부터 볼까지 9줄. puffed 면 볼이 양옆으로 한 칸씩 부푼다.
     private static func head(eyes: Eyes, puffed: Bool = false) -> [String] {
         let face: [String] = switch eyes {
-        case .open: ["...OOOOKOOOOOOKOOOO...",
+        case .open, .wide: ["...OOOOKOOOOOOKOOOO...",
                      "..OOOOOKOOOOOOKOOOOO.."]
         case .happy: ["...OOOOKOOOOOOKOOOO...",
                       "..OOOOKOKOOOOKOKOOOO.."]
@@ -91,10 +125,12 @@ public enum Mascot {
             : ["..OOOOOOOCDDCOOOOOOO..",
                ".OOOooOOCCCCCCOOooOOO.",
                ".OOOOOOOOOOOOOOOOOOOO."]
+        // 크게 뜬 눈은 한 줄 위까지 이어진다.
+        let brow = eyes == .wide ? "...OOOOKOOOOOOKOOOO..." : "...OOOOOOOOOOOOOOOO..."
         return [".....OO........OO.....",
                 "....OooO......OooO....",
                 "....OOOOOOOOOOOOOO....",
-                "...OOOOOOOOOOOOOOOO..."] + face + cheeks
+                brow] + face + cheeks
     }
 
     /// 배에 말풍선(체크)을 안은 몸 7줄. 말풍선 꼬리가 아래로 삐져나온다.
@@ -123,8 +159,9 @@ public enum Mascot {
     private static let sleepZ = ["XXXX", "..X.", ".X..", "XXXX"]
     private static let sparkle = [".X.", "XXX", ".X."]
     private static let twinkle = ["...", ".X.", "..."]
+    private static let bang = ["X", "X", "X", ".", "X"]
 
-    /// 몸에 테두리를 둘러 격자 가운데(위에서 세 줄 아래)에 놓고, 표시(?, Z, 반짝임)를 머리 위 빈 칸에 얹는다.
+    /// 몸에 테두리를 둘러 격자 가운데(위에서 세 줄 아래)에 놓고, 표시(?, !, Z, 반짝임)를 머리 위 빈 칸에 얹는다.
     private static func canvas(_ body: [String], marks: [(x: Int, y: Int, rows: [String])] = []) -> [String] {
         let cells = body.map(Array.init)
         let h = cells.count, w = cells[0].count

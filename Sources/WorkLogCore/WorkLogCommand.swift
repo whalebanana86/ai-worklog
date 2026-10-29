@@ -9,12 +9,18 @@ import Foundation
 ///   --session <id>       세션 하나 자세히
 ///   --no-store           보관함 없이 원본만 처음부터 읽기
 ///   --quiet              보관함만 갱신하고 한 줄로 알리기 (설치·자동 보관용)
+///   --moa                캐릭터 모아를 색 글자로 그리기 (설치 스크립트 끝 인사, 기록은 읽지 않음)
 public enum WorkLogCommand {
     /// 돌려주는 값은 종료 코드.
     public static func run(_ args: [String]) -> Int32 {
         func value(after flag: String) -> String? {
             guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
             return args[i + 1]
+        }
+
+        if args.contains("--moa") {
+            print(Mascot.terminalArt(.proud))
+            return 0
         }
 
         if let mode = value(after: "--auto-sync") {

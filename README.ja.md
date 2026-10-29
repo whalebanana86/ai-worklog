@@ -2,7 +2,11 @@
 
 [한국어](README.md) · [English](README.en.md) · **日本語**
 
-<p align="center"><img src="docs/brand/app-icon.png" width="128" alt="完了のチェックが入った吹き出しのアプリアイコン"></p>
+<p align="center">
+  <img src="docs/brand/app-icon.png" width="128" alt="完了のチェックが入った吹き出しのアプリアイコン">
+  <img src="docs/brand/moa.gif" width="132" alt="キャラクターのモア：吹き出しを抱えてまばたきするピクセルのハムスター">
+  <br><sub>キャラクター<b>モア</b> — 散らばった AI との作業記録をほっぺにためるハムスター</sub>
+</p>
 
 **「AIと一緒に、こんなことまでやっていたの？」**
 

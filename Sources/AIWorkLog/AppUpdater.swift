@@ -185,7 +185,11 @@ struct AppUpdateSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L("업데이트 확인…")).font(.title2.bold())
+            HStack(alignment: .top) {
+                Text(L("업데이트 확인…")).font(.title2.bold())
+                Spacer()
+                MascotView(pose: mascot, cell: 2)
+            }
             if updater.isChecking {
                 ProgressView(L("업데이트 확인 중…"))
             } else if let status = updater.status {
@@ -229,6 +233,13 @@ struct AppUpdateSheet: View {
         .frame(width: 480)
         .interactiveDismissDisabled(updater.isInstalling)
         .background(UpdateSheetWindowReader { updater.attachUpdateWindow($0) })
+    }
+
+    /// 모아: 확인·설치 중엔 모으는 중, 새 버전이면 놀라서 느낌표, 최신이면 평소, 오류면 갸웃.
+    private var mascot: Mascot.Pose {
+        if updater.error != nil { return .puzzled }
+        if updater.isChecking || updater.status != nil { return .gathering }
+        return updater.available != nil ? .excited : .idle
     }
 }
 

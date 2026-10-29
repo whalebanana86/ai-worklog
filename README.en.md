@@ -1,6 +1,10 @@
 # I Did That? — What I did with AI
 
-<p align="center"><img src="docs/brand/app-icon.png" width="128" alt="App icon: a speech bubble with a completion check"></p>
+<p align="center">
+  <img src="docs/brand/app-icon.png" width="128" alt="App icon: a speech bubble with a completion check">
+  <img src="docs/brand/moa.gif" width="132" alt="Moa the mascot: a pixel hamster blinking while hugging a speech bubble">
+  <br><sub>Meet <b>Moa</b>, a hamster that gathers your scattered AI work in its cheeks</sub>
+</p>
 
 [한국어](README.md) · **English** · [日本語](README.ja.md)
 
@@ -205,6 +209,7 @@ APP="/Applications/이걸내가.app/Contents/MacOS/AIWorkLog"   # or ~/Applicati
 "$APP" cli --day 2026-10-16 --ai claude   # AI summary per project for that day (codex, lmstudio too)
 "$APP" cli --summarize             # summarize every past day without one (--dry-run to count)
 "$APP" cli --auto-sync on          # auto archive every 6 h (off, status)
+"$APP" cli --moa                   # draw Moa in color (the installer's goodbye)
 ```
 
 ### Develop

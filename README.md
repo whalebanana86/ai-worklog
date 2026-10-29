@@ -1,6 +1,10 @@
 # 이걸내가 — AI와 함께한 일
 
-<p align="center"><img src="docs/brand/app-icon.png" width="128" alt="이걸내가 앱 아이콘: 완료 체크가 담긴 말풍선"></p>
+<p align="center">
+  <img src="docs/brand/app-icon.png" width="128" alt="이걸내가 앱 아이콘: 완료 체크가 담긴 말풍선">
+  <img src="docs/brand/moa.gif" width="132" alt="캐릭터 모아: 말풍선을 안고 눈을 깜빡이는 픽셀 햄스터">
+  <br><sub>캐릭터 <b>모아</b> — 흩어진 AI 작업 기록을 볼에 모으는 햄스터</sub>
+</p>
 
 **한국어** · [English](README.en.md) · [日本語](README.ja.md)
 
@@ -299,6 +303,7 @@ scripts/build_app.sh --remove-auto-sync     # 자동 보관 끄기
 "$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --day 2026-10-16 --ai claude   # 그날 프로젝트마다 AI 요약 (codex·lmstudio 도 됨)
 "$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --summarize            # 아직 요약 없는 지난 날짜 모두 요약 (--dry-run: 몇 개인지만)
 "$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --auto-sync on        # 자동 보관 켜기 (off: 끄기, status: 상태)
+"$HOME/Applications/이걸내가.app/Contents/MacOS/AIWorkLog" cli --moa                 # 캐릭터 모아를 색 글자로 (설치 스크립트 끝 인사)
 ```
 
 #### 가볍게 만든 방법 (2026-10-16 측정)

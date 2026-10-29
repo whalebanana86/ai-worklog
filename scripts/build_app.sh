@@ -112,6 +112,12 @@ for arg in "$@"; do
         *" --no-summary "*) echo "AI 요약은 건너뛰었어요 (--no-summary)." ;;
         *) "$INSTALLED/Contents/MacOS/AIWorkLog" cli --summarize || echo "AI 요약을 다 만들지 못했어요. 다시 설치하거나 앱에서 날짜를 보면 남은 날을 요약해요." ;;
       esac
+      # 끝 인사: 캐릭터 모아(색 글자 그림). 터미널이 아니면(로그로 남길 때) 색 글자가 깨져 보이니 건너뛴다.
+      if [ -t 1 ]; then
+        echo
+        "$INSTALLED/Contents/MacOS/AIWorkLog" cli --moa
+      fi
+      echo "다 됐어요. 이걸내가를 열어 보세요."
       ;;
     --auto-sync)
       [ -d "$INSTALLED" ] || { echo "먼저 --install 로 설치해 주세요."; exit 1; }
