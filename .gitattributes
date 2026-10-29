@@ -1,0 +1,3 @@
+# GitHub 릴리즈에 붙는 소스 묶음(Source code zip·tar.gz)에서 홍보 영상 도구는 뺀다.
+scripts/make_demo_video.sh export-ignore
+scripts/record_window.swift export-ignore

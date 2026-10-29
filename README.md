@@ -328,7 +328,7 @@ scripts/screenshot.sh /tmp/a.png --demo --screen skills   # 앱 창만 캡처 (�
 `--session <id>`, `--search <글>`, `--report`, `--settings`(설정 창 열기), `--dark`(이번에만 어둡게, 저장하지 않음), `--frame x,y,w,h`, `--hover-day yyyy-MM-dd`(차트에 마우스를 올린 상태),
 `--demo`(지어낸 기록으로 띄우기 — 실제 기록·보관함을 읽지 않고 AI 도 부르지 않음. README 그림은 이걸로 찍었다),
 `--no-ai`(요약할 AI 가 하나도 없는 척하기), `--tab worklog|sessions|setup|notes`(프로젝트 화면 시작 탭), `--tools codex,lmStudio`(도구 거르기),
-`--tool-colors claudeCode=8E44AD,codex=2E9E4F`(이번에만 도구 색 바꾸기, 저장하지 않음), `--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기).
+`--tool-colors claudeCode=8E44AD,codex=2E9E4F`(이번에만 도구 색 바꾸기, 저장하지 않음), `--lang ko|en|ja`(이번에만 그 언어로, 저장하지 않음), `--tour`(시연 영상용 자동 둘러보기 — 홍보용 빌드 `PROMO=1 scripts/build_app.sh` 에만 들어 있고, 캡처·녹화 스크립트가 알아서 그걸로 만든다. 배포 앱에는 없다).
 
 README 그림·시연 영상 다시 만들기 (지어낸 기록으로만 찍는다).
 캡처 스크립트는 앱 ID 만 바꾼 사본(`build.noindex/demo/AIWorkLogDemo.app`, `local.aiworklog.demo`)을 빈 설정으로 띄워 찍고 끈다.

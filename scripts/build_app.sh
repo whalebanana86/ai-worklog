@@ -5,6 +5,7 @@
 #   scripts/build_app.sh --install --no-summary  AI 요약은 미리 만들지 않기 (앱에서 날짜를 볼 때 그날만 요약)
 #   scripts/build_app.sh --install --auto-sync   + 앱을 안 열어도 6시간마다 보관함 갱신 (launchd)
 #   scripts/build_app.sh --remove-auto-sync      자동 보관 끄기
+#   PROMO=1 scripts/build_app.sh                 홍보 영상·캡처용: 자동 둘러보기(--tour)를 넣어 build.noindex/demo/build/ 에 따로 만들기
 #   (AI 요약 미리 만들기·자동 보관은 앱 설정(⌘,)에서도 켜고 끌 수 있어요)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -12,6 +13,12 @@ cd "$(dirname "$0")/.."
 NAME="이걸내가"
 # 이름이 .noindex 로 끝나는 폴더는 Spotlight 가 색인하지 않아서, 빌드한 사본이 설치된 앱과 함께 검색되지 않는다.
 APP="build.noindex/$NAME.app"
+# 홍보용 빌드는 배포·설치용 앱과 섞이지 않게 다른 곳에 만들고, 설치하지 않는다.
+PROMO="${PROMO:-0}"
+if [ "$PROMO" = 1 ]; then
+  APP="build.noindex/demo/build/$NAME.app"
+  case " $* " in *" --install "*|*" --auto-sync "*) echo "홍보용 빌드(PROMO=1)는 설치하지 않아요." >&2; exit 1 ;; esac
+fi
 # Update the existing system-wide copy when present, so Finder does not keep opening an old app.
 INSTALL_DIR="$HOME/Applications"
 LEGACY_NAME="AI 작업일지"
@@ -51,9 +58,11 @@ fi
 # UNIVERSAL=1 이면 Apple 실리콘·인텔 맥 둘 다 도는 실행 파일 (배포용, GitHub Releases).
 BUILD_PATH=".build/app-release"
 ARCHS=()
+FLAGS=(-Xswiftc -Osize)
 if [ "${UNIVERSAL:-0}" = 1 ]; then BUILD_PATH=".build/app-universal"; ARCHS=(--arch arm64 --arch x86_64); fi
-swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"}
-BIN="$(swift build -c release --product AIWorkLog -Xswiftc -Osize --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)"
+if [ "$PROMO" = 1 ]; then BUILD_PATH=".build/app-promo"; FLAGS+=(-Xswiftc -DPROMO); fi
+swift build -c release --product AIWorkLog "${FLAGS[@]}" --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"}
+BIN="$(swift build -c release --product AIWorkLog "${FLAGS[@]}" --build-path "$BUILD_PATH" ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

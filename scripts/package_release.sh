@@ -16,7 +16,8 @@ OUT="build.noindex/release"
 BASE="Igeolnaega-$VERSION-macOS"
 
 # 두 아키텍처(Apple 실리콘·인텔)로 만들고, 만든 앱에만 버전을 적는다 (저장소의 Support/Info.plist 는 그대로).
-VERSION="$VERSION" UNIVERSAL=1 scripts/build_app.sh
+# 홍보 영상용 자동 둘러보기(--tour)는 넣지 않는다 (셸에 PROMO=1 이 남아 있어도).
+VERSION="$VERSION" UNIVERSAL=1 PROMO=0 scripts/build_app.sh
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$(date +%Y%m%d%H%M)" "$APP/Contents/Info.plist"
 

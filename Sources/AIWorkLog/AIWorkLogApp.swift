@@ -150,6 +150,7 @@ enum LaunchOptions {
                 model.makePeriodReport()
             }
         }
+        #if PROMO
         if args.contains("--tour") {
             Task {
                 while !model.hasLoaded || model.isLoading { try? await Task.sleep(for: .milliseconds(100)) }
@@ -157,6 +158,7 @@ enum LaunchOptions {
                 await tour(model)
             }
         }
+        #endif
         guard let sid = value("--session") else { return }
         // 기록을 다 읽은 다음에 연다.
         Task {
@@ -168,6 +170,8 @@ enum LaunchOptions {
     }
 }
 
+// 자동 둘러보기(--tour)는 홍보 영상용 빌드(`PROMO=1 scripts/build_app.sh`)에만 넣는다. 배포·설치하는 앱에는 없다.
+#if PROMO
 extension LaunchOptions {
     static let isTour = ProcessInfo.processInfo.arguments.contains("--tour")
     /// README 첫머리의 20초 시연 영상(`--demo --tour`). 한눈에 보기 → 기간 바꾸기 → 프로젝트의 AI 요약 → 자세히 → 세션 → 스킬·규칙 → 검색.
@@ -200,3 +204,8 @@ extension LaunchOptions {
         model.screen = .dashboard
     }
 }
+#else
+extension LaunchOptions {
+    static let isTour = false
+}
+#endif

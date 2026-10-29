@@ -7,7 +7,7 @@
 # 그래서 앱 ID 만 바꾼 사본(build.noindex/demo/AIWorkLogDemo.app, local.aiworklog.demo)을 띄우고, 그 사본만 골라 끈다.
 # 사본은 띄울 때마다 빈 설정으로 시작하고, 끝나면 그 설정을 지운다.
 #
-#   demo_prepare            빌드한 앱으로 사본을 만든다 (앱이 바뀌었을 때만 다시)
+#   demo_prepare            홍보용 빌드(PROMO=1, 자동 둘러보기 포함)로 사본을 만든다 (코드·앱이 바뀌었을 때만 다시)
 #   demo_open [옵션...]     사본을 빈 설정으로 띄우고 창이 뜰 때까지 기다린다 → $DEMO_PID
 #   demo_quit               사본만 끈다
 #   demo_finish             사본을 끄고 그 설정을 지운다 (trap demo_finish EXIT 로 쓴다)
@@ -19,8 +19,11 @@ DEMO_MATCH='AIWorkLogDemo\.app/Contents/MacOS/AIWorkLog'
 DEMO_PID=""
 
 demo_prepare() {
-  local src="build.noindex/이걸내가.app" stamp=build.noindex/demo/.prepared
-  [ -d "$src" ] || scripts/build_app.sh >/dev/null
+  local src="build.noindex/demo/build/이걸내가.app" stamp=build.noindex/demo/.prepared
+  # 배포 앱에는 자동 둘러보기(--tour)가 없어서 홍보용으로 따로 빌드한다.
+  if [ ! -d "$src" ] || [ -n "$(find Sources Support Package.swift -newer "$src" -print -quit)" ]; then
+    PROMO=1 scripts/build_app.sh >/dev/null
+  fi
   if [ -d "$DEMO_APP" ] && [ -f "$stamp" ] && [ -z "$(find "$src" -newer "$stamp" -print -quit)" ]; then return 0; fi
   demo_quit
   rm -rf "$DEMO_APP"
