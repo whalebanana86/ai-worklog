@@ -338,10 +338,7 @@ struct LoadingView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "book.pages")
-                .font(.largeTitle)
-                .imageScale(.large)
-                .foregroundStyle(.secondary)
+            MascotView(pose: .gathering, cell: 5)
             Text(L("AI 작업 기록을 읽고 있어요")).font(.title3.weight(.semibold))
             Text(L("처음 한 번은 Claude Code·Codex 기록 전체를 읽어서 조금 걸려요.\n다음부터는 늘어난 부분만 읽어요."))
                 .multilineTextAlignment(.center)

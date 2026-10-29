@@ -43,7 +43,17 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        PageHeader(title: L("한눈에 보기"), summary: "\(model.period.longLabel) · \(summarySentence)")
+        HStack(alignment: .bottom, spacing: 16) {
+            PageHeader(title: L("한눈에 보기"), summary: "\(model.period.longLabel) · \(summarySentence)")
+            // 기록이 없을 때는 아래 빈 카드에 모아가 따로 나온다.
+            if !model.scoped.isEmpty { MascotView(pose: mood, cell: 2) }
+        }
+    }
+
+    /// 지난 기간보다 작업 시간이 늘었으면 뿌듯한 모아. 견줄 기간이 없으면(전체) 평소 모습.
+    private var mood: Mascot.Pose {
+        guard let before = model.previousTotals?.activeSeconds else { return .idle }
+        return model.totals.activeSeconds > before ? .proud : .idle
     }
 
     private var summarySentence: String {

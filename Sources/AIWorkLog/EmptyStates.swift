@@ -18,14 +18,14 @@ struct NoRecordsCard: View {
         if model.snapshot.sessions.isEmpty {
             EmptyCard(title: L("아직 모은 AI 기록이 없어요"),
                       message: L("Claude Code·Codex·LM Studio 로 작업하면 여기에 날짜별로 모여요. 이 맥의 ~/.claude, ~/.codex, ~/.lmstudio 에서 기록을 읽어요."),
-                      symbol: "tray") {
+                      mascot: .emptyHanded) {
                 Button(L("새로 고침")) { model.refresh() }
             }
         } else if !query.isEmpty {
             EmptyCard(title: requests ? L("‘%@’ 와 맞는 요청이 없어요", query) : L("‘%@’ 와 맞는 기록이 없어요", query),
                       message: last.map { L("%@에는 없지만 다른 때에는 있어요. 마지막: %@", model.period.longLabel, Fmt.fullDay($0)) }
                           ?? L("보낸 요청과 AI 답, 프로젝트 이름에서 찾지 못했어요."),
-                      symbol: "magnifyingglass") {
+                      mascot: .puzzled) {
                 HStack {
                     Button(L("검색어 지우기")) { model.search = "" }
                     if last != nil, model.period != .all { Button(L("전체 기간에서 찾기")) { model.period = .all } }
@@ -35,7 +35,7 @@ struct NoRecordsCard: View {
             EmptyCard(title: requests ? L("고른 도구로 한 요청이 없어요") : L("고른 도구로 한 기록이 없어요"),
                       message: allTools ? L("자동으로 돌린 세션만 있어요. 위쪽 거르기 메뉴에서 자동 실행 세션도 볼 수 있어요.")
                           : L("위쪽 거르기 메뉴에서 %@만 보고 있어요.", AITool.chartOrder.filter(model.tools.contains).map(\.displayName).joined(separator: "·")),
-                      symbol: "line.3.horizontal.decrease.circle") {
+                      mascot: .puzzled) {
                 if !allTools {
                     Button(L("모든 도구 보기")) { model.tools = Set(AITool.allCases) }
                 } else if !model.includeAutomated {
@@ -45,7 +45,7 @@ struct NoRecordsCard: View {
         } else {
             EmptyCard(title: requests ? L("%@에는 요청이 없어요", model.period.longLabel) : L("%@에는 기록이 없어요", model.period.longLabel),
                       message: last.map { L("마지막으로 일한 날: %@", Fmt.fullDay($0)) } ?? L("기간을 넓혀 보세요."),
-                      symbol: "calendar") {
+                      mascot: .sleeping) {
                 if model.period != .all { Button(L("전체 기간 보기")) { model.period = .all } }
             }
         }
